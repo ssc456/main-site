@@ -31,7 +31,7 @@ async function triggerBuildWithGitCommit(siteId) {
   const { data: refData } = await octokit.git.getRef({
     owner,
     repo,
-    ref: 'heads/main',
+    ref: 'heads/master',
   });
   const latestCommitSha = refData.object.sha;
   
