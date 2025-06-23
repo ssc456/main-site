@@ -126,19 +126,24 @@ export default async function handler(req, res) {
 
     /* ───── 5.  Detach Git and disable push builds (v9) ───── */
     console.log('[Vercel] Detaching Git repository...');
-    await axios.patch(
-      `https://api.vercel.com/v9/projects/${projectId}`,
-      {
-        gitRepository: null,
-        buildCommand: 'npm run build', // Ensure we keep the build command after detaching
-        outputDirectory: 'dist',       // Set output directory explicitly after detaching
-        devCommand: 'npm run dev',     // Keep development command 
-        installCommand: 'npm install', // Ensure install command is preserved
-        framework: 'vite'              // Keep framework setting
-      },
-      { headers: vcHeaders }
-    );
-    console.log('[Vercel] Git disconnected');
+    try {
+      await axios.patch(
+        `https://api.vercel.com/v9/projects/${projectId}`,
+        {
+          buildCommand: 'npm run build',
+          outputDirectory: 'dist',
+          devCommand: 'npm run dev',
+          installCommand: 'npm install',
+          framework: 'vite',
+          connectionType: 'manual' // This is the key - changing from git to manual
+        },
+        { headers: vcHeaders }
+      );
+      console.log('[Vercel] Git disconnected');
+    } catch (detachError) {
+      console.warn('[Vercel] Git detachment failed:', detachError.response?.data || detachError);
+      // Continue even if detachment fails
+    }
 
     /* ───── 6.  Response ───── */
     return res.status(201).json({
