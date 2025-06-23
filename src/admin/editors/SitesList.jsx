@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
 
 export default function SitesList() {
   const [sites, setSites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedSite, setExpandedSite] = useState(null);
+  const [siteToDelete, setSiteToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   
   useEffect(() => {
     fetchSites();
@@ -42,11 +46,52 @@ export default function SitesList() {
   
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
-    alert('URL copied to clipboard');
+    toast.success('URL copied to clipboard');
   };
   
   const toggleSiteExpanded = (siteId) => {
     setExpandedSite(expandedSite === siteId ? null : siteId);
+  };
+  
+  const openDeleteConfirmation = (site) => {
+    setSiteToDelete(site);
+    setShowConfirmDialog(true);
+  };
+  
+  const closeDeleteConfirmation = () => {
+    setShowConfirmDialog(false);
+    setSiteToDelete(null);
+  };
+  
+  const deleteSite = async () => {
+    if (!siteToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      const token = localStorage.getItem('adminToken');
+      const response = await fetch(`/api/delete-site?siteId=${siteToDelete.siteId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete site');
+      }
+      
+      toast.success(`Site "${siteToDelete.businessName || siteToDelete.siteId}" deleted successfully`);
+      
+      // Update the sites list by removing the deleted site
+      setSites(sites.filter(site => site.siteId !== siteToDelete.siteId));
+    } catch (err) {
+      console.error('Error deleting site:', err);
+      toast.error(`Failed to delete site: ${err.message}`);
+    } finally {
+      setIsDeleting(false);
+      closeDeleteConfirmation();
+    }
   };
   
   if (loading) {
@@ -171,6 +216,17 @@ export default function SitesList() {
                           <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                         </svg>
                       </button>
+                      
+                      {/* Add Delete Button */}
+                      <button
+                        onClick={() => openDeleteConfirmation(site)}
+                        className="text-red-500 hover:text-red-700"
+                        title="Delete Site"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -179,6 +235,42 @@ export default function SitesList() {
           </table>
         </div>
       </div>
+      
+      {/* Delete Confirmation Dialog */}
+      {showConfirmDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Confirm Deletion</h3>
+            <p className="mb-6 text-gray-600">
+              Are you sure you want to delete the site <span className="font-semibold">{siteToDelete?.businessName || siteToDelete?.siteId}</span>? 
+              This action cannot be undone.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={closeDeleteConfirmation}
+                disabled={isDeleting}
+                className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteSite}
+                disabled={isDeleting}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 flex items-center"
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete Site'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
