@@ -98,66 +98,78 @@ export default async function handler(req, res) {
     
     // 6. Create project on Vercel without GitHub integration
     try {
-      const vercelTemplateId = process.env.VERCEL_TEMPLATE_ID;
+      const vercelProjectId = process.env.VERCEL_TEMPLATE_ID;
       const vercelToken = process.env.VERCEL_API_TOKEN;
       
-      if (!vercelTemplateId || !vercelToken) {
+      if (!vercelProjectId || !vercelToken) {
         throw new Error('Missing Vercel credentials');
       }
       
-      console.log(`[CreateSite API] Using template ID: ${vercelTemplateId}`);
+      console.log(`[CreateSite API] Using template project ID: ${vercelProjectId}`);
       
-      // Create project by cloning Vercel template directly
-      try {
-        // Create project using "clone" API
-        const vercelResponse = await axios({
-          method: 'post',
-          url: 'https://api.vercel.com/v6/projects',
-          headers: {
-            'Authorization': `Bearer ${vercelToken}`,
-            'Content-Type': 'application/json'
-          },
-          data: {
-            name: siteId,
-            environmentVariables: [
-              { key: 'KV_REST_API_URL', value: process.env.KV_REST_API_URL, target: ['production', 'preview', 'development'] },
-              { key: 'KV_REST_API_TOKEN', value: process.env.KV_REST_API_TOKEN, target: ['production', 'preview', 'development'] },
-              { key: 'VITE_SITE_ID', value: siteId, target: ['production', 'preview', 'development'] }
-            ],
-            template: vercelTemplateId
-          }
-        });
-        
-        console.log(`[CreateSite API] Created Vercel project: ${siteId}`);
-        console.log(`[CreateSite API] Project creation response:`, vercelResponse.data);
-        
-        // Trigger a deployment for the new project
+      // Step 1: Create a new empty project
+      const createProjectResponse = await axios({
+        method: 'post',
+        url: 'https://api.vercel.com/v9/projects',
+        headers: {
+          'Authorization': `Bearer ${vercelToken}`,
+          'Content-Type': 'application/json'
+        },
+        data: {
+          name: siteId,
+          framework: "vite"
+        }
+      });
+      
+      console.log(`[CreateSite API] Created empty Vercel project: ${siteId}`);
+      
+      // Step 2: Clone the template project into the new project
+      const cloneResponse = await axios({
+        method: 'post',
+        url: `https://api.vercel.com/v1/deployments`,
+        headers: {
+          'Authorization': `Bearer ${vercelToken}`,
+          'Content-Type': 'application/json'
+        },
+        data: {
+          name: siteId,
+          project: siteId,
+          target: 'production',
+          source: 'clone',
+          fromProject: vercelProjectId
+        }
+      });
+      
+      console.log(`[CreateSite API] Cloned template into project. Deployment ID: ${cloneResponse.data?.id || 'unknown'}`);
+      
+      // Step 3: Add environment variables to the project
+      const envVars = [
+        { key: 'KV_REST_API_URL', value: process.env.KV_REST_API_URL, target: ['production', 'preview', 'development'] },
+        { key: 'KV_REST_API_TOKEN', value: process.env.KV_REST_API_TOKEN, target: ['production', 'preview', 'development'] },
+        { key: 'VITE_SITE_ID', value: siteId, target: ['production', 'preview', 'development'] }
+      ];
+      
+      // Add environment variables one by one
+      for (const envVar of envVars) {
         await axios({
           method: 'post',
-          url: `https://api.vercel.com/v13/deployments`,
+          url: `https://api.vercel.com/v9/projects/${siteId}/env`,
           headers: {
             'Authorization': `Bearer ${vercelToken}`,
             'Content-Type': 'application/json'
           },
-          data: {
-            name: siteId,
-            project: siteId,
-            target: 'production'
-          }
+          data: envVar
         });
-        
-        console.log(`[CreateSite API] Triggered deployment for: ${siteId}`);
-        
-        return res.status(201).json({
-          success: true,
-          siteId,
-          url: `https://${siteId}.vercel.app`,
-          adminUrl: `https://${siteId}.vercel.app/admin`
-        });
-      } catch (vercelError) {
-        console.error('[CreateSite API] Vercel API error:', vercelError.response?.data || vercelError.message);
-        throw vercelError;
       }
+      
+      console.log(`[CreateSite API] Added environment variables to project: ${siteId}`);
+      
+      return res.status(201).json({
+        success: true,
+        siteId,
+        url: `https://${siteId}.vercel.app`,
+        adminUrl: `https://${siteId}.vercel.app/admin`
+      });
     } catch (vercelError) {
       console.error('[CreateSite API] Vercel error:', vercelError.response?.data || vercelError.message);
       
