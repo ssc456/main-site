@@ -104,17 +104,15 @@ export default async function handler(req, res) {
     /* ───── 4. Manually trigger deployment ───── */
     console.log('[Vercel] Triggering initial deployment...');
     try {
+      // Since the project is already connected to GitHub, we can trigger a deployment
+      // using the project's existing git connection
       const deployResp = await axios.post(
         'https://api.vercel.com/v13/deployments',
         {
           name: siteId,
-          target: 'production',
-          projectId: projectId,
-          gitSource: {
-            type: "github",
-            repo: "ssc456/bizbud-template-site",
-            ref: "main"
-          }
+          project: siteId, // Use project name instead of projectId
+          target: 'production'
+          // Remove gitSource - let it use the existing GitHub connection
         },
         { headers: vcHeaders }
       );
@@ -127,15 +125,21 @@ export default async function handler(req, res) {
     /* ───── 5.  Detach Git and disable push builds (v9) ───── */
     console.log('[Vercel] Detaching Git repository...');
     try {
+      // First, let's wait a moment for the deployment to start
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Remove git connection by setting it to null and updating build settings
       await axios.patch(
         `https://api.vercel.com/v9/projects/${projectId}`,
         {
+          // Remove the git repository connection
+          link: null,
+          // Preserve build settings for manual deployments
           buildCommand: 'npm run build',
           outputDirectory: 'dist',
           devCommand: 'npm run dev',
           installCommand: 'npm install',
-          framework: 'vite',
-          connectionType: 'manual' // This is the key - changing from git to manual
+          framework: 'vite'
         },
         { headers: vcHeaders }
       );
