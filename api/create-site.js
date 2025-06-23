@@ -127,9 +127,26 @@ export default async function handler(req, res) {
     }
 
     /* ───── 5. Wait and then disconnect Git ───── */
-    console.log('[Vercel] Waiting for deployment to start...');
-    await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
-    
+    console.log('[Vercel] Waiting for initial deployment to finish...');
+    let deployed = false;
+    for (let i = 0; i < 20; i++) { // Wait up to ~2 minutes
+      const deployments = await axios.get(
+        `https://api.vercel.com/v6/deployments?projectId=${projectId}`,
+        { headers: vcHeaders }
+      );
+      const ready = deployments.data.deployments.find(d => d.state === 'READY');
+      if (ready) {
+        deployed = true;
+        break;
+      }
+      await new Promise(res => setTimeout(res, 6000)); // Wait 6 seconds
+    }
+    if (!deployed) {
+      console.warn('[Vercel] Initial deployment did not finish in time.');
+    } else {
+      console.log('[Vercel] Initial deployment finished!');
+    }
+
     try {
       // Try to remove the GitHub connection
       await axios.delete(`https://api.vercel.com/v6/projects/${projectId}/link`, { headers: vcHeaders });
