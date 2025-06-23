@@ -123,10 +123,11 @@ export default async function handler(req, res) {
       
       console.log(`[CreateSite API] Created empty Vercel project: ${siteId}`);
       
-      // Step 2: Clone the template project into the new project
-      const cloneResponse = await axios({
+      // Step 2: Deploy to the project from a template
+      // Using v13/deployments endpoint which is more reliable
+      const deploymentResponse = await axios({
         method: 'post',
-        url: `https://api.vercel.com/v1/deployments`,
+        url: 'https://api.vercel.com/v13/deployments',
         headers: {
           'Authorization': `Bearer ${vercelToken}`,
           'Content-Type': 'application/json'
@@ -135,12 +136,16 @@ export default async function handler(req, res) {
           name: siteId,
           project: siteId,
           target: 'production',
-          source: 'clone',
-          fromProject: vercelProjectId
+          // Instead of trying to clone, we'll use gitRepository deployment
+          gitSource: {
+            type: "github",
+            repo: "SSCTechnology/template-site",
+            ref: "main" // or whatever branch you use
+          }
         }
       });
       
-      console.log(`[CreateSite API] Cloned template into project. Deployment ID: ${cloneResponse.data?.id || 'unknown'}`);
+      console.log(`[CreateSite API] Created deployment for project: ${siteId}`, deploymentResponse.data);
       
       // Step 3: Add environment variables to the project
       const envVars = [
