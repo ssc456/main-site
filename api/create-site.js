@@ -101,52 +101,57 @@ export default async function handler(req, res) {
     );
     console.log('[Vercel] Env-vars added');
 
-    /* ───── 4. Manually trigger deployment ───── */
-    console.log('[Vercel] Triggering initial deployment...');
+    /* ───── 4. Create deployment hook for future use ───── */
+    console.log('[Vercel] Creating deployment hook...');
     try {
-      // Since the project is already connected to GitHub, we can trigger a deployment
-      // using the project's existing git connection
-      const deployResp = await axios.post(
-        'https://api.vercel.com/v13/deployments',
+      const hookResp = await axios.post(
+        `https://api.vercel.com/v1/integrations/deploy-hooks`,
         {
-          name: siteId,
-          project: siteId, // Use project name instead of projectId
-          target: 'production'
-          // Remove gitSource - let it use the existing GitHub connection
+          name: `Deploy ${siteId}`,
+          project: projectId,
+          ref: 'main'
         },
         { headers: vcHeaders }
       );
-      console.log('[Vercel] Deployment triggered:', deployResp.data?.id || 'unknown');
-    } catch (deployError) {
-      console.warn('[Vercel] Deployment trigger failed:', deployError.response?.data || deployError);
-      // Continue even if deployment fails - we still want to detach Git
+      
+      const hookUrl = hookResp.data?.url;
+      console.log('[Vercel] Deploy hook created:', hookUrl);
+      
+      // Trigger the hook immediately to start first deployment
+      if (hookUrl) {
+        await axios.post(hookUrl);
+        console.log('[Vercel] Initial deployment triggered via hook');
+      }
+    } catch (hookError) {
+      console.warn('[Vercel] Deploy hook creation failed:', hookError.response?.data || hookError);
     }
 
-    /* ───── 5.  Detach Git and disable push builds (v9) ───── */
-    console.log('[Vercel] Detaching Git repository...');
+    /* ───── 5. Wait and then disconnect Git ───── */
+    console.log('[Vercel] Waiting for deployment to start...');
+    await new Promise(resolve => setTimeout(resolve, 5000)); // Wait 5 seconds
+    
     try {
-      // First, let's wait a moment for the deployment to start
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Remove git connection by setting it to null and updating build settings
-      await axios.patch(
-        `https://api.vercel.com/v9/projects/${projectId}`,
-        {
-          // Remove the git repository connection
-          link: null,
-          // Preserve build settings for manual deployments
-          buildCommand: 'npm run build',
-          outputDirectory: 'dist',
-          devCommand: 'npm run dev',
-          installCommand: 'npm install',
-          framework: 'vite'
-        },
-        { headers: vcHeaders }
-      );
-      console.log('[Vercel] Git disconnected');
-    } catch (detachError) {
-      console.warn('[Vercel] Git detachment failed:', detachError.response?.data || detachError);
-      // Continue even if detachment fails
+      // Try to remove the GitHub connection
+      await axios.delete(`https://api.vercel.com/v6/projects/${projectId}/link`, { headers: vcHeaders });
+      console.log('[Vercel] Git connection removed');
+    } catch (unlinkError) {
+      console.warn('[Vercel] Git unlinking failed:', unlinkError.response?.data || unlinkError);
+      // If unlinking fails, at least ensure auto-deploy is disabled
+      try {
+        await axios.patch(
+          `https://api.vercel.com/v9/projects/${projectId}`,
+          { 
+            autoExposeSystemEnvs: false,
+            buildCommand: 'npm run build',
+            outputDirectory: 'dist',
+            framework: 'vite'
+          },
+          { headers: vcHeaders }
+        );
+        console.log('[Vercel] Updated project settings');
+      } catch (updateError) {
+        console.warn('[Vercel] Project update failed:', updateError.response?.data || updateError);
+      }
     }
 
     /* ───── 6.  Response ───── */
