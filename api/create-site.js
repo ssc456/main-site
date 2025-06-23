@@ -1,196 +1,98 @@
-import { Redis } from '@upstash/redis';
-import bcrypt from 'bcryptjs';
-import axios from 'axios';
+import { Redis } from '@upstash/redis'
+import bcrypt from 'bcryptjs'
+import axios from 'axios'
 
-// Initialize Redis client
 const redis = (() => {
-  const url = process.env.KV_REST_API_URL?.trim();
-  const token = process.env.KV_REST_API_TOKEN?.trim();
-  
-  console.log('[CreateSite API] Redis env vars:', {
-    url: url ? 'Found' : 'Not found',
-    token: token ? 'Found' : 'Not found'
-  });
-
+  const url = process.env.KV_REST_API_URL?.trim()
+  const token = process.env.KV_REST_API_TOKEN?.trim()
+  console.log('[CreateSite API] Redis env vars:', { url: url ? 'Found' : 'Not found', token: token ? 'Found' : 'Not found' })
   if (!url || !token) {
-    console.error('[CreateSite API] Missing Redis credentials');
-    return null;
+    console.error('[CreateSite API] Missing Redis credentials')
+    return null
   }
-
-  return new Redis({ url, token });
-})();
+  return new Redis({ url, token })
+})()
 
 export default async function handler(req, res) {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST');
-    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
-    return res.status(200).end();
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Allow-Methods', 'POST')
+    res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type')
+    return res.status(200).end()
   }
-  
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  // Check authentication
-  const authHeader = req.headers.authorization;
+  const authHeader = req.headers.authorization
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Authentication required' });
+    return res.status(401).json({ error: 'Authentication required' })
   }
-  
-  const token = authHeader.replace('Bearer ', '');
-  const { siteId, businessName, businessType, password } = req.body;
-  
+
+  const token = authHeader.replace('Bearer ', '')
+  const { siteId, businessName, businessType, password } = req.body
   if (!siteId || !businessName || !password) {
-    return res.status(400).json({ error: 'Missing required fields (siteId, businessName, password)' });
+    return res.status(400).json({ error: 'Missing required fields (siteId, businessName, password)' })
   }
-  
-  // Validate siteId format (lowercase, no spaces, only letters, numbers, and hyphens)
   if (!/^[a-z0-9-]+$/.test(siteId)) {
-    return res.status(400).json({ error: 'Site ID must contain only lowercase letters, numbers, and hyphens' });
+    return res.status(400).json({ error: 'Site ID must contain only lowercase letters, numbers, and hyphens' })
   }
-  
-  // Validate password length
   if (password.length < 6) {
-    return res.status(400).json({ error: 'Password must be at least 6 characters long' });
+    return res.status(400).json({ error: 'Password must be at least 6 characters long' })
   }
 
   try {
-    if (!redis) {
-      throw new Error('Redis connection not available');
-    }
-    
-    // Check if site already exists
-    const existingSite = await redis.get(`site:${siteId}:client`);
-    if (existingSite) {
-      return res.status(409).json({ error: 'Site ID already exists' });
-    }
-    
-    // 1. Copy template from coastal-breeze
-    console.log(`[CreateSite API] Copying template from coastal-breeze for new site: ${siteId}`);
-    const templateData = await redis.get('site:coastal-breeze:client');
-    
-    if (!templateData) {
-      return res.status(500).json({ error: 'Template site data not found' });
-    }
-    
-    // 2. Create new site data with updated information
-    const newSiteData = {
-      ...templateData,
-      siteTitle: businessName,
-      businessType: businessType || ''
-    };
-    
-    // 3. Create password hash
-    const passwordHash = await bcrypt.hash(password, 12);
-    
-    // 4. Store site settings in Redis
+    if (!redis) throw new Error('Redis connection not available')
+    const existingSite = await redis.get(`site:${siteId}:client`)
+    if (existingSite) return res.status(409).json({ error: 'Site ID already exists' })
+
+    const templateData = await redis.get('site:coastal-breeze:client')
+    if (!templateData) return res.status(500).json({ error: 'Template site data not found' })
+
+    const newSiteData = { ...templateData, siteTitle: businessName, businessType: businessType || '' }
+    const passwordHash = await bcrypt.hash(password, 12)
+
     await redis.set(`site:${siteId}:settings`, {
       adminPasswordHash: passwordHash,
       createdAt: new Date().toISOString(),
       adminEmail: req.body.email || '',
       businessType: businessType || ''
-    });
-    
-    // 5. Store site content in Redis
-    await redis.set(`site:${siteId}:client`, newSiteData);
-    
-    // 6. Create project on Vercel without GitHub integration
-    try {
-      const vercelProjectId = process.env.VERCEL_TEMPLATE_ID;
-      const vercelToken = process.env.VERCEL_API_TOKEN;
-      
-      if (!vercelProjectId || !vercelToken) {
-        throw new Error('Missing Vercel credentials');
-      }
-      
-      console.log(`[CreateSite API] Using template project ID: ${vercelProjectId}`);
-      
-      // Step 1: Create a new empty project
-      const createProjectResponse = await axios({
-        method: 'post',
-        url: 'https://api.vercel.com/v9/projects',
-        headers: {
-          'Authorization': `Bearer ${vercelToken}`,
-          'Content-Type': 'application/json'
-        },
-        data: {
-          name: siteId,
-          framework: "vite"
-        }
-      });
-      
-      console.log(`[CreateSite API] Created empty Vercel project: ${siteId}`);
-      
-      // Step 2: Set up environment variables first
-      const envVars = [
-        { key: 'KV_REST_API_URL', value: process.env.KV_REST_API_URL, target: ['production', 'preview', 'development'] },
-        { key: 'KV_REST_API_TOKEN', value: process.env.KV_REST_API_TOKEN, target: ['production', 'preview', 'development'] },
-        { key: 'VITE_SITE_ID', value: siteId, target: ['production', 'preview', 'development'] }
-      ];
-      
-      // Add environment variables one by one
-      for (const envVar of envVars) {
-        await axios({
-          method: 'post',
-          url: `https://api.vercel.com/v9/projects/${siteId}/env`,
-          headers: {
-            'Authorization': `Bearer ${vercelToken}`,
-            'Content-Type': 'application/json'
-          },
-          data: envVar
-        });
-      }
-      
-      console.log(`[CreateSite API] Added environment variables to project: ${siteId}`);
-      
-      // Step 3: Create a deployment using a deploy hook (simpler than git integration)
-      const hookResponse = await axios({
-        method: 'post',
-        url: `https://api.vercel.com/v1/integrations/deploy-hooks`,
-        headers: {
-          'Authorization': `Bearer ${vercelToken}`,
-          'Content-Type': 'application/json'
-        },
-        data: {
-          name: `Deploy hook for ${siteId}`,
-          project: siteId,
-          ref: 'main'
-        }
-      });
-      
-      const hookUrl = hookResponse.data?.url;
-      console.log(`[CreateSite API] Created deploy hook: ${hookUrl}`);
-      
-      // Trigger the deployment hook if created successfully
-      if (hookUrl) {
-        // This simulates a "Deploy Latest" action in the Vercel UI
-        await axios.post(hookUrl);
-        console.log(`[CreateSite API] Triggered deployment for: ${siteId}`);
-      } else {
-        console.log(`[CreateSite API] No hook URL, deployment will need to be manual`);
-      }
-      
-      return res.status(201).json({
-        success: true,
-        siteId,
-        url: `https://${siteId}.vercel.app`,
-        adminUrl: `https://${siteId}.vercel.app/admin`
-      });
-    } catch (vercelError) {
-      console.error('[CreateSite API] Vercel error:', vercelError.response?.data || vercelError.message);
-      
-      // Site was created in Redis but failed on Vercel
-      return res.status(201).json({
-        success: true,
-        siteId,
-        vercelError: true,
-        message: 'Site created in database but Vercel deployment failed. You can still access your site content and manually deploy later.'
-      });
+    })
+    await redis.set(`site:${siteId}:client`, newSiteData)
+
+    const vercelTemplateProject = process.env.VERCEL_TEMPLATE_ID
+    const vercelToken = process.env.VERCEL_API_TOKEN
+    if (!vercelTemplateProject || !vercelToken) throw new Error('Missing Vercel credentials')
+
+    const vcHeaders = { Authorization: `Bearer ${vercelToken}`, 'Content-Type': 'application/json' }
+
+    await axios.post('https://api.vercel.com/v11/projects', { name: siteId, framework: 'vite' }, { headers: vcHeaders })
+
+    const listResp = await axios.get(
+      `https://api.vercel.com/v6/deployments?projectId=${vercelTemplateProject}&state=READY&limit=1&target=production`,
+      { headers: vcHeaders }
+    )
+    const templateDeploymentId = listResp.data.deployments?.[0]?.uid
+    if (!templateDeploymentId) throw new Error('No successful deployment found on template project')
+
+    await axios.post(
+      'https://api.vercel.com/v13/deployments',
+      { deploymentId: templateDeploymentId, name: siteId, project: siteId, target: 'production' },
+      { headers: vcHeaders }
+    )
+
+    const envVars = [
+      { key: 'KV_REST_API_URL', value: process.env.KV_REST_API_URL, type: 'plain', target: ['production', 'preview', 'development'] },
+      { key: 'KV_REST_API_TOKEN', value: process.env.KV_REST_API_TOKEN, type: 'encrypted', target: ['production', 'preview', 'development'] },
+      { key: 'VITE_SITE_ID', value: siteId, type: 'plain', target: ['production', 'preview', 'development'] }
+    ]
+    for (const envVar of envVars) {
+      await axios.post(`https://api.vercel.com/v10/projects/${siteId}/env?upsert=true`, envVar, { headers: vcHeaders })
     }
+
+    return res.status(201).json({ success: true, siteId, url: `https://${siteId}.vercel.app`, adminUrl: `https://${siteId}.vercel.app/admin` })
   } catch (error) {
-    console.error('[CreateSite API] Error:', error);
-    return res.status(500).json({ error: 'Failed to create site' });
+    console.error('[CreateSite API] Error:', error.response?.data || error.message)
+    return res.status(500).json({ error: 'Failed to create site' })
   }
 }
