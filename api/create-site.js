@@ -96,10 +96,10 @@ export default async function handler(req, res) {
     // 5. Store site content in Redis
     await redis.set(`site:${siteId}:client`, newSiteData);
     
-    // 6. Create project on Vercel (with improved error handling)
+    // 6. Create project on Vercel without GitHub integration
     try {
       const vercelTemplateId = process.env.VERCEL_TEMPLATE_ID;
-      const vercelToken = process.env.VERCEL_TOKEN;
+      const vercelToken = process.env.VERCEL_API_TOKEN;
       
       if (!vercelTemplateId || !vercelToken) {
         throw new Error('Missing Vercel credentials');
@@ -107,50 +107,31 @@ export default async function handler(req, res) {
       
       console.log(`[CreateSite API] Using template ID: ${vercelTemplateId}`);
       
-      // Create project by cloning template - Use git provider approach instead
+      // Create project by cloning Vercel template directly
       try {
-        // First approach - clone via template project ID
+        // Create project using "clone" API
         const vercelResponse = await axios({
           method: 'post',
-          url: 'https://api.vercel.com/v9/projects',
+          url: 'https://api.vercel.com/v6/projects',
           headers: {
             'Authorization': `Bearer ${vercelToken}`,
             'Content-Type': 'application/json'
           },
           data: {
             name: siteId,
-            framework: "vite",
-            gitRepository: {
-              type: "github",
-              repo: "SSCTechnology/template-site",
-              private: false
-            }
+            environmentVariables: [
+              { key: 'KV_REST_API_URL', value: process.env.KV_REST_API_URL, target: ['production', 'preview', 'development'] },
+              { key: 'KV_REST_API_TOKEN', value: process.env.KV_REST_API_TOKEN, target: ['production', 'preview', 'development'] },
+              { key: 'VITE_SITE_ID', value: siteId, target: ['production', 'preview', 'development'] }
+            ],
+            template: vercelTemplateId
           }
         });
         
         console.log(`[CreateSite API] Created Vercel project: ${siteId}`);
+        console.log(`[CreateSite API] Project creation response:`, vercelResponse.data);
         
-        // Add environment variables to the project
-        const envVars = [
-          { key: 'KV_REST_API_URL', value: process.env.KV_REST_API_URL, target: ['production', 'preview'] },
-          { key: 'KV_REST_API_TOKEN', value: process.env.KV_REST_API_TOKEN, target: ['production', 'preview'] },
-          { key: 'VITE_SITE_ID', value: siteId, target: ['production', 'preview'] }
-        ];
-        
-        // Add environment variables one by one
-        for (const envVar of envVars) {
-          await axios({
-            method: 'post',
-            url: `https://api.vercel.com/v9/projects/${siteId}/env`,
-            headers: {
-              'Authorization': `Bearer ${vercelToken}`,
-              'Content-Type': 'application/json'
-            },
-            data: envVar
-          });
-        }
-        
-        // Trigger deployment
+        // Trigger a deployment for the new project
         await axios({
           method: 'post',
           url: `https://api.vercel.com/v13/deployments`,
@@ -166,69 +147,17 @@ export default async function handler(req, res) {
         });
         
         console.log(`[CreateSite API] Triggered deployment for: ${siteId}`);
-      } catch (cloneError) {
-        console.error('[CreateSite API] Error cloning from template:', cloneError.response?.data || cloneError.message);
         
-        // Try alternative approach - direct project creation
-        const vercelResponse = await axios({
-          method: 'post',
-          url: 'https://api.vercel.com/v12/projects',
-          headers: {
-            'Authorization': `Bearer ${vercelToken}`,
-            'Content-Type': 'application/json'
-          },
-          data: {
-            name: siteId,
-            framework: "vite"
-          }
+        return res.status(201).json({
+          success: true,
+          siteId,
+          url: `https://${siteId}.vercel.app`,
+          adminUrl: `https://${siteId}.vercel.app/admin`
         });
-        
-        console.log(`[CreateSite API] Created Vercel project (alternative method): ${siteId}`);
-        
-        // Add environment variables as before
-        const envVars = [
-          { key: 'KV_REST_API_URL', value: process.env.KV_REST_API_URL, target: ['production', 'preview'] },
-          { key: 'KV_REST_API_TOKEN', value: process.env.KV_REST_API_TOKEN, target: ['production', 'preview'] },
-          { key: 'VITE_SITE_ID', value: siteId, target: ['production', 'preview'] }
-        ];
-        
-        // Add environment variables one by one
-        for (const envVar of envVars) {
-          await axios({
-            method: 'post',
-            url: `https://api.vercel.com/v9/projects/${siteId}/env`,
-            headers: {
-              'Authorization': `Bearer ${vercelToken}`,
-              'Content-Type': 'application/json'
-            },
-            data: envVar
-          });
-        }
-        
-        // Trigger deployment
-        await axios({
-          method: 'post',
-          url: `https://api.vercel.com/v13/deployments`,
-          headers: {
-            'Authorization': `Bearer ${vercelToken}`,
-            'Content-Type': 'application/json'
-          },
-          data: {
-            name: siteId,
-            project: siteId,
-            target: 'production'
-          }
-        });
-        
-        console.log(`[CreateSite API] Triggered deployment for: ${siteId}`);
+      } catch (vercelError) {
+        console.error('[CreateSite API] Vercel API error:', vercelError.response?.data || vercelError.message);
+        throw vercelError;
       }
-      
-      return res.status(201).json({
-        success: true,
-        siteId,
-        url: `https://${siteId}.vercel.app`,
-        adminUrl: `https://${siteId}.vercel.app/admin`
-      });
     } catch (vercelError) {
       console.error('[CreateSite API] Vercel error:', vercelError.response?.data || vercelError.message);
       
