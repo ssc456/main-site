@@ -96,7 +96,7 @@ export default async function handler(req, res) {
     // 5. Store site content in Redis
     await redis.set(`site:${siteId}:client`, newSiteData);
     
-    // 6. Create project on Vercel
+    // 6. Create project on Vercel (with improved error handling)
     try {
       const vercelTemplateId = process.env.VERCEL_TEMPLATE_ID;
       const vercelToken = process.env.VERCEL_TOKEN;
@@ -105,58 +105,123 @@ export default async function handler(req, res) {
         throw new Error('Missing Vercel credentials');
       }
       
-      // Create project by cloning template
-      const vercelResponse = await axios({
-        method: 'post',
-        url: 'https://api.vercel.com/v9/projects',
-        headers: {
-          'Authorization': `Bearer ${vercelToken}`,
-          'Content-Type': 'application/json'
-        },
-        data: {
-          name: siteId,
-          template: vercelTemplateId,
-        }
-      });
+      console.log(`[CreateSite API] Using template ID: ${vercelTemplateId}`);
       
-      console.log(`[CreateSite API] Created Vercel project: ${siteId}`);
-      
-      // Add environment variables to the project
-      const envVars = [
-        { key: 'KV_REST_API_URL', value: process.env.KV_REST_API_URL, target: ['production', 'preview'] },
-        { key: 'KV_REST_API_TOKEN', value: process.env.KV_REST_API_TOKEN, target: ['production', 'preview'] },
-        { key: 'VITE_SITE_ID', value: siteId, target: ['production', 'preview'] }
-      ];
-      
-      // Add environment variables one by one
-      for (const envVar of envVars) {
-        await axios({
+      // Create project by cloning template - Use git provider approach instead
+      try {
+        // First approach - clone via template project ID
+        const vercelResponse = await axios({
           method: 'post',
-          url: `https://api.vercel.com/v9/projects/${siteId}/env`,
+          url: 'https://api.vercel.com/v9/projects',
           headers: {
             'Authorization': `Bearer ${vercelToken}`,
             'Content-Type': 'application/json'
           },
-          data: envVar
+          data: {
+            name: siteId,
+            framework: "vite",
+            gitRepository: {
+              type: "github",
+              repo: "SSCTechnology/template-site",
+              private: false
+            }
+          }
         });
-      }
-      
-      // Trigger deployment
-      await axios({
-        method: 'post',
-        url: `https://api.vercel.com/v13/deployments`,
-        headers: {
-          'Authorization': `Bearer ${vercelToken}`,
-          'Content-Type': 'application/json'
-        },
-        data: {
-          name: siteId,
-          project: siteId,
-          target: 'production'
+        
+        console.log(`[CreateSite API] Created Vercel project: ${siteId}`);
+        
+        // Add environment variables to the project
+        const envVars = [
+          { key: 'KV_REST_API_URL', value: process.env.KV_REST_API_URL, target: ['production', 'preview'] },
+          { key: 'KV_REST_API_TOKEN', value: process.env.KV_REST_API_TOKEN, target: ['production', 'preview'] },
+          { key: 'VITE_SITE_ID', value: siteId, target: ['production', 'preview'] }
+        ];
+        
+        // Add environment variables one by one
+        for (const envVar of envVars) {
+          await axios({
+            method: 'post',
+            url: `https://api.vercel.com/v9/projects/${siteId}/env`,
+            headers: {
+              'Authorization': `Bearer ${vercelToken}`,
+              'Content-Type': 'application/json'
+            },
+            data: envVar
+          });
         }
-      });
-      
-      console.log(`[CreateSite API] Triggered deployment for: ${siteId}`);
+        
+        // Trigger deployment
+        await axios({
+          method: 'post',
+          url: `https://api.vercel.com/v13/deployments`,
+          headers: {
+            'Authorization': `Bearer ${vercelToken}`,
+            'Content-Type': 'application/json'
+          },
+          data: {
+            name: siteId,
+            project: siteId,
+            target: 'production'
+          }
+        });
+        
+        console.log(`[CreateSite API] Triggered deployment for: ${siteId}`);
+      } catch (cloneError) {
+        console.error('[CreateSite API] Error cloning from template:', cloneError.response?.data || cloneError.message);
+        
+        // Try alternative approach - direct project creation
+        const vercelResponse = await axios({
+          method: 'post',
+          url: 'https://api.vercel.com/v12/projects',
+          headers: {
+            'Authorization': `Bearer ${vercelToken}`,
+            'Content-Type': 'application/json'
+          },
+          data: {
+            name: siteId,
+            framework: "vite"
+          }
+        });
+        
+        console.log(`[CreateSite API] Created Vercel project (alternative method): ${siteId}`);
+        
+        // Add environment variables as before
+        const envVars = [
+          { key: 'KV_REST_API_URL', value: process.env.KV_REST_API_URL, target: ['production', 'preview'] },
+          { key: 'KV_REST_API_TOKEN', value: process.env.KV_REST_API_TOKEN, target: ['production', 'preview'] },
+          { key: 'VITE_SITE_ID', value: siteId, target: ['production', 'preview'] }
+        ];
+        
+        // Add environment variables one by one
+        for (const envVar of envVars) {
+          await axios({
+            method: 'post',
+            url: `https://api.vercel.com/v9/projects/${siteId}/env`,
+            headers: {
+              'Authorization': `Bearer ${vercelToken}`,
+              'Content-Type': 'application/json'
+            },
+            data: envVar
+          });
+        }
+        
+        // Trigger deployment
+        await axios({
+          method: 'post',
+          url: `https://api.vercel.com/v13/deployments`,
+          headers: {
+            'Authorization': `Bearer ${vercelToken}`,
+            'Content-Type': 'application/json'
+          },
+          data: {
+            name: siteId,
+            project: siteId,
+            target: 'production'
+          }
+        });
+        
+        console.log(`[CreateSite API] Triggered deployment for: ${siteId}`);
+      }
       
       return res.status(201).json({
         success: true,
@@ -165,15 +230,14 @@ export default async function handler(req, res) {
         adminUrl: `https://${siteId}.vercel.app/admin`
       });
     } catch (vercelError) {
-      console.error('[CreateSite API] Vercel error:', vercelError);
+      console.error('[CreateSite API] Vercel error:', vercelError.response?.data || vercelError.message);
       
-      // Site was created in Redis but failed on Vercel, so we can still return success
-      // but include a warning about Vercel deployment
+      // Site was created in Redis but failed on Vercel
       return res.status(201).json({
         success: true,
         siteId,
         vercelError: true,
-        message: 'Site created in database but Vercel deployment failed. Manual deployment required.'
+        message: 'Site created in database but Vercel deployment failed. You can still access your site content and manually deploy later.'
       });
     }
   } catch (error) {
