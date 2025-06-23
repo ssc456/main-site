@@ -74,8 +74,9 @@ export default async function handler(req, res) {
 
     const vcHeaders = { Authorization: `Bearer ${vercelToken}`, 'Content-Type': 'application/json' };
 
+    console.log('[Vercel] Creating new project...');
     const createResp = await axios.post(
-      'https://api.vercel.com/v11/projects',
+      'https://api.vercel.com/v9/projects',
       {
         name: siteId,
         framework: 'vite',
@@ -87,6 +88,7 @@ export default async function handler(req, res) {
     console.log('[Vercel] Project created, id:', projectId);
 
     /* ───── 3.  Env vars (v10) ───── */
+    console.log('[Vercel] Adding environment variables...');
     const envVars = [
       { key: 'KV_REST_API_URL', value: process.env.KV_REST_API_URL, type: 'encrypted', target: ['production', 'preview', 'development'] },
       { key: 'KV_REST_API_TOKEN', value: process.env.KV_REST_API_TOKEN, type: 'encrypted', target: ['production', 'preview', 'development'] },
@@ -99,19 +101,45 @@ export default async function handler(req, res) {
     );
     console.log('[Vercel] Env-vars added');
 
-    /* ───── 4.  Detach Git and disable push builds (v9) ───── */
+    /* ───── 4. Manually trigger deployment ───── */
+    console.log('[Vercel] Triggering initial deployment...');
+    try {
+      const deployResp = await axios.post(
+        'https://api.vercel.com/v13/deployments',
+        {
+          name: siteId,
+          target: 'production',
+          projectId: projectId,
+          meta: { 
+            githubRepo: 'ssc456/bizbud-template-site',
+            githubCommitSha: 'main' // Using branch name or commit SHA
+          }
+        },
+        { headers: vcHeaders }
+      );
+      console.log('[Vercel] Deployment triggered:', deployResp.data?.id || 'unknown');
+    } catch (deployError) {
+      console.warn('[Vercel] Deployment trigger failed:', deployError.response?.data || deployError);
+      // Continue even if deployment fails - we still want to detach Git
+    }
+
+    /* ───── 5.  Detach Git and disable push builds (v9) ───── */
+    console.log('[Vercel] Detaching Git repository...');
     await axios.patch(
       `https://api.vercel.com/v9/projects/${projectId}`,
       {
         gitRepository: null,
-        gitProviderOptions: { createDeployments: 'disabled' },
-        skipGitConnectDuringLink: true
+        buildCommand: 'npm run build', // Ensure we keep the build command after detaching
+        outputDirectory: 'dist',       // Set output directory explicitly after detaching
+        devCommand: 'npm run dev',     // Keep development command 
+        installCommand: 'npm install', // Ensure install command is preserved
+        framework: 'vite'              // Keep framework setting
       },
       { headers: vcHeaders }
     );
-    console.log('[Vercel] Git disconnected & auto-deploys disabled');
+    console.log('[Vercel] Git disconnected');
 
-    /* ───── 5.  Response ───── */
+    /* ───── 6.  Response ───── */
     return res.status(201).json({
       success: true,
       siteId,
