@@ -110,9 +110,10 @@ export default async function handler(req, res) {
           name: siteId,
           target: 'production',
           projectId: projectId,
-          meta: { 
-            githubRepo: 'ssc456/bizbud-template-site',
-            githubCommitSha: 'main' // Using branch name or commit SHA
+          gitSource: {
+            type: "github",
+            repo: "ssc456/bizbud-template-site",
+            ref: "main"
           }
         },
         { headers: vcHeaders }
