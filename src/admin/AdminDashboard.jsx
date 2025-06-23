@@ -18,6 +18,7 @@ import ContactEditor from './editors/ContactEditor';
 import SocialEditor from './editors/SocialEditor';
 import ConfigEditor from './editors/ConfigEditor';
 import MediaLibrary from './editors/MediaLibrary';
+import SitesList from './editors/SitesList';
 
 import PreviewFrame from './PreviewFrame';
 import DebugConsole from './DebugConsole';
@@ -36,6 +37,12 @@ export default function AdminDashboard() {
 
   // Get the site ID and fetch initial data
   useEffect(() => {
+    // Skip site data fetching when on sites list page
+    if (location.pathname === '/admin/dashboard/sites') {
+      setLoading(false);
+      return;
+    }
+    
     const extractedSiteId = extractSiteId();
     setSiteId(extractedSiteId);
     
@@ -67,7 +74,7 @@ export default function AdminDashboard() {
     };
     
     fetchData();
-  }, []);
+  }, [location.pathname]);
   
   // Update active section when URL changes
   useEffect(() => {
@@ -115,6 +122,7 @@ export default function AdminDashboard() {
   
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', path: '/admin/dashboard' },
+    { id: 'sites', label: 'All Sites', path: '/admin/dashboard/sites' },
     { id: 'general', label: 'General Settings', path: '/admin/dashboard/general' },
     { id: 'hero', label: 'Hero Section', path: '/admin/dashboard/hero' },
     { id: 'about', label: 'About Section', path: '/admin/dashboard/about' },
@@ -232,7 +240,8 @@ export default function AdminDashboard() {
           <div className="w-1/2 overflow-y-auto p-6">
             {clientData && (
               <Routes>
-                <Route index element={<Dashboard clientData={clientData} />} />
+                <Route path="/" element={<Dashboard clientData={clientData} />} />
+                <Route path="sites" element={<SitesList />} />
                 <Route path="general" element={<GeneralEditor clientData={clientData} setClientData={setClientData} />} />
                 <Route path="hero" element={<HeroEditor clientData={clientData} setClientData={setClientData} />} />
                 <Route path="about" element={<AboutEditor clientData={clientData} setClientData={setClientData} />} />
