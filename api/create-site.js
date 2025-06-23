@@ -139,7 +139,7 @@ export default async function handler(req, res) {
           // Instead of trying to clone, we'll use gitRepository deployment
           gitSource: {
             type: "github",
-            repo: "SSCTechnology/template-site",
+            repo: "ssc456/bizbud-template-site",
             ref: "main" // or whatever branch you use
           }
         }
