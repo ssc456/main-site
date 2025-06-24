@@ -168,11 +168,13 @@ async function generateSiteContent(businessName, businessType = '', businessDesc
     
     Use these guidelines:
     1. Use appropriate Lucide icon names for services and features (e.g., ShieldCheck, Clock, Heart, Star, Zap)
-    2. Create realistic, engaging content for the business with substantial text content, using details from the business description provided
+    2. Create realistic, engaging content for the business with substantial text content, using details from the business description provided but do not be limited to this. If there is insufficient information, or little information is provided, use your expertise to fill in the gaps and create a complete, professional site.
     3. Generate image prompts that would create high-quality images relevant to this business
     4. Primary color should match the business type or brand feel
     5. For social media platforms that don't apply to this business, use empty strings
     6. For testimonials, create realistic but fictional customer quotes that reflect the business description
+
+    You are the expert here, use your best judgment and content creation to ensure a rich, content dense site configuration.
     `;
     
     // Call OpenAI with schema validation
