@@ -28,7 +28,7 @@ async function triggerBuildWithGitCommit(siteId) {
   const owner = 'ssc456';  // Your GitHub username
   const repo = 'bizbud-template-site';  // Your repository name
   const branch = 'master';   // Your default branch (could be 'master' if it's an older repo)
-  
+
   // 1. Get the latest commit on main branch to use as base
   const { data: refData } = await octokit.git.getRef({
     owner,
@@ -36,7 +36,7 @@ async function triggerBuildWithGitCommit(siteId) {
     ref: `heads/${branch}`,
   });
   const latestCommitSha = refData.object.sha;
-  
+
   // 2. Get the tree for that commit
   const { data: commitData } = await octokit.git.getCommit({
     owner,
@@ -44,7 +44,7 @@ async function triggerBuildWithGitCommit(siteId) {
     commit_sha: latestCommitSha,
   });
   const treeSha = commitData.tree.sha;
-  
+
   // 3. Create a new blob with timestamp content
   const timestamp = new Date().toISOString();
   const { data: blobData } = await octokit.git.createBlob({
@@ -53,7 +53,7 @@ async function triggerBuildWithGitCommit(siteId) {
     content: `This file triggers builds for site ID: ${siteId}\nTimestamp: ${timestamp}`,
     encoding: 'utf-8',
   });
-  
+
   // 4. Create a new tree with the timestamp file
   const { data: newTreeData } = await octokit.git.createTree({
     owner,
@@ -68,7 +68,7 @@ async function triggerBuildWithGitCommit(siteId) {
       },
     ],
   });
-  
+
   // 5. Create a commit with the new tree
   const { data: newCommitData } = await octokit.git.createCommit({
     owner,
@@ -77,15 +77,15 @@ async function triggerBuildWithGitCommit(siteId) {
     tree: newTreeData.sha,
     parents: [latestCommitSha],
   });
-  
+
   // 6. Update the reference to point to the new commit
   await octokit.git.updateRef({
     owner,
     repo,
-    ref: 'heads/main',
+    ref: `heads/${branch}`, // ← Now uses the branch variable (master)
     sha: newCommitData.sha,
   });
-  
+
   console.log(`[GitHub] Commit created to trigger build for ${siteId}`);
   return newCommitData.sha;
 }
@@ -139,7 +139,7 @@ export default async function handler(req, res) {
     /* ───── 2.  Vercel project creation (v9) ───── */
     const vercelToken = process.env.VERCEL_API_TOKEN;
     if (!vercelToken) throw new Error('Missing Vercel token');
-    
+
     const githubToken = process.env.GITHUB_TOKEN;
     if (!githubToken) throw new Error('Missing GitHub token');
 
@@ -175,37 +175,37 @@ export default async function handler(req, res) {
     /* ───── 4. Trigger build with GitHub commit ───── */
     console.log('[GitHub] Triggering commit to start build...');
     await triggerBuildWithGitCommit(siteId);
-    
+
     /* ───── 5. Wait for deployment to start ───── */
     console.log('[Vercel] Waiting for deployment to start...');
     let deploymentId = null;
-    
+
     // Wait for deployment to appear (up to 30 seconds)
     for (let i = 0; i < 10; i++) {
       const deployments = await axios.get(
         `https://api.vercel.com/v6/deployments?projectId=${projectId}`,
         { headers: vcHeaders }
       );
-      
+
       if (deployments.data.deployments.length > 0) {
         deploymentId = deployments.data.deployments[0].id;
         console.log('[Vercel] Deployment started with ID:', deploymentId);
         break;
       }
-      
+
       await new Promise(res => setTimeout(res, 3000)); // Wait 3 seconds between checks
     }
-    
+
     if (!deploymentId) {
       console.warn('[Vercel] No deployment detected, continuing anyway...');
     }
-    
+
     /* ───── 6. Disconnect GitHub immediately ───── */
     // We don't need to wait for build to finish, just for it to start
     console.log('[Vercel] Disconnecting GitHub...');
     try {
       await axios.delete(
-        `https://api.vercel.com/v6/projects/${projectId}/link`, 
+        `https://api.vercel.com/v6/projects/${projectId}/link`,
         { headers: vcHeaders }
       );
       console.log('[Vercel] GitHub connection removed');
@@ -214,7 +214,7 @@ export default async function handler(req, res) {
       // Fallback to disabling auto-deployments
       await axios.patch(
         `https://api.vercel.com/v9/projects/${projectId}`,
-        { 
+        {
           autoExposeSystemEnvs: false,
           buildCommand: 'npm run build',
           outputDirectory: 'dist',
