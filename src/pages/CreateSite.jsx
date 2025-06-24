@@ -104,6 +104,14 @@ export default function CreateSite() {
   
   // Handle submit
   const handleSubmit = async () => {
+    // First, actively blur any focused element to dismiss mobile keyboard
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    
+    // Add a small delay to ensure all state updates have completed
+    await new Promise(resolve => setTimeout(resolve, 50));
+    
     if (!validateCurrentStep()) return;
     
     setIsSubmitting(true);
@@ -112,7 +120,7 @@ export default function CreateSite() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer public-website' // You'll need to update your API to accept this token
+          'Authorization': 'Bearer public-website'
         },
         body: JSON.stringify({
           businessName: formData.businessName,
@@ -137,6 +145,7 @@ export default function CreateSite() {
       pollBuildStatus(data.siteId);
       
     } catch (err) {
+      console.error('Form submission error:', err);
       setError(err.message || 'Failed to create site');
     } finally {
       setIsSubmitting(false);

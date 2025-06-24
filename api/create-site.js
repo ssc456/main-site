@@ -127,7 +127,7 @@ const ClientSiteSchema = z.object({
     address: z.string()
   }),
   config: z.object({
-    primaryColor: z.enum(['blue', 'green', 'purple', 'pink', 'red', 'yellow']),
+    primaryColor: z.enum(['blue', 'green', 'purple', 'pink']),
     showHero: z.boolean(),
     showAbout: z.boolean(),
     showServices: z.boolean(),
@@ -170,7 +170,7 @@ async function generateSiteContent(businessName, businessType = '', businessDesc
     1. Use appropriate Lucide icon names for services and features (e.g., ShieldCheck, Clock, Heart, Star, Zap)
     2. Create realistic, engaging content for the business with substantial text content, using details from the business description provided but do not be limited to this. If there is insufficient information, or little information is provided, use your expertise to fill in the gaps and create a complete, professional site.
     3. Generate image prompts that would create high-quality images relevant to this business
-    4. Primary color should match the business type or brand feel
+    4. Primary color should match the business type or brand feel limited to Blue, Green, Purple, Pink
     5. For social media platforms that don't apply to this business, use empty strings
     6. For testimonials, create realistic but fictional customer quotes that reflect the business description
 
