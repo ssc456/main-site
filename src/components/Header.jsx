@@ -46,7 +46,7 @@ function Header({ siteTitle, logoUrl, config, primaryColor }) {
               {logoUrl && <img src={logoUrl} alt='Logo' className='h-10 w-auto sm:h-12 rounded-lg shadow-sm' onError={e => (e.target.style.display = 'none')} />}
               <h1 className={`text-xl sm:text-2xl font-bold ${scrolled ? 'text-gray-900' : 'text-white'}`}>{siteTitle}</h1>
             </div>
-            <nav className='hidden lg:flex items-center space-x-8'>
+            <nav className='hidden lg:flex items-center'>
               {navLinks.map(l => l.enabled && (
                 <a key={l.id} href={`#${l.id}`} onClick={e => handleNavClick(e, l.id)} className={`text-sm font-medium transition-all hover:scale-105 ${scrolled ? `text-gray-700 ${colorClasses.hover}` : 'text-white hover:text-gray-200'}`}>
                   {l.label}
@@ -85,6 +85,13 @@ function Header({ siteTitle, logoUrl, config, primaryColor }) {
               <a href='#contact' onClick={e => handleNavClick(e, 'contact')} className={`block w-full text-center py-3 mt-6 rounded-xl font-medium ${colorClasses.bg} text-white hover:opacity-90`}>
                 Book Now
               </a>
+              <Link 
+                to="/create" 
+                className="mt-6 px-6 py-3 rounded-md font-medium text-center bg-white text-gray-900 hover:bg-gray-100"
+                onClick={() => setMenuOpen(false)}
+              >
+                Create Your Site
+              </Link>
             </nav>
           </div>
         </div>
