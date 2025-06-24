@@ -14,6 +14,7 @@ import ContactSection from './components/ContactSection'
 import Footer from './components/Footer'
 import AdminLogin from './admin/AdminLogin';
 import AdminDashboard from './admin/AdminDashboard';
+import CreateSite from './pages/CreateSite';
 import { extractSiteId } from './utils/siteId';
 import { initializePreviewDebugging, updatePreviewTitle } from './utils/previewHelpers';
 
@@ -164,6 +165,7 @@ function App() {
       <Routes>
         <Route path="/admin" element={<AdminLogin />} />
         <Route path="/admin/dashboard/*" element={<AdminDashboard />} />
+        <Route path="/create" element={<CreateSite />} />
         <Route path="/" element={
           <div className='min-h-screen bg-white scroll-smooth'>
             <Header siteTitle={content.siteTitle} logoUrl={content.logoUrl} config={config} primaryColor={config.primaryColor} />

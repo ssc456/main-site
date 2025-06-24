@@ -146,7 +146,7 @@ const ClientSiteSchema = z.object({
  * @param {string} businessType - The type/industry of the business
  * @return {Promise<Object>} - The generated site content
  */
-async function generateSiteContent(businessName, businessType = '') {
+async function generateSiteContent(businessName, businessType = '', businessDescription = '') {
   console.log(`[AI] Generating content for "${businessName}" (${businessType || 'unspecified type'})`);
   
   // Check if OpenAI API key is available
@@ -156,7 +156,7 @@ async function generateSiteContent(businessName, businessType = '') {
   }
   
   try {
-    // Create system prompt for content generation
+    // Create system prompt for content generation with business description
     const systemPrompt = `
     You are a professional website content creator specializing in small business websites.
     Create a complete client.json file for a business website using the information provided below.
@@ -164,14 +164,15 @@ async function generateSiteContent(businessName, businessType = '') {
     Business information:
     - Business name: ${businessName}
     - Business type/industry: ${businessType || 'Not specified, use your best judgment based on the name'}
+    - Business description: ${businessDescription || 'Not provided'}
     
     Use these guidelines:
     1. Use appropriate Lucide icon names for services and features (e.g., ShieldCheck, Clock, Heart, Star, Zap)
-    2. Create realistic, engaging content for the business with substantial text content
+    2. Create realistic, engaging content for the business with substantial text content, using details from the business description provided
     3. Generate image prompts that would create high-quality images relevant to this business
     4. Primary color should match the business type or brand feel
     5. For social media platforms that don't apply to this business, use empty strings
-    6. For testimonials, create realistic but fictional customer quotes
+    6. For testimonials, create realistic but fictional customer quotes that reflect the business description
     `;
     
     // Call OpenAI with schema validation
@@ -288,10 +289,11 @@ export default async function handler(req, res) {
 
   /* Auth + body validation */
   const auth = req.headers.authorization || '';
-  if (!auth.startsWith('Bearer '))
+  // Allow both admin tokens and the public website token
+  if (!auth.startsWith('Bearer ') || (auth !== 'Bearer public-website' && !validateAdminToken(auth)))
     return res.status(401).json({ error: 'Authentication required' });
 
-  const { siteId, businessName, businessType = '', password, email = '' } = req.body;
+  const { siteId, businessName, businessType = '', businessDescription = '', password, email = '' } = req.body;
   if (!siteId || !businessName || !password)
     return res.status(400).json({ error: 'Missing required fields (siteId, businessName, password)' });
   if (!/^[a-z0-9-]+$/.test(siteId))
@@ -313,7 +315,7 @@ export default async function handler(req, res) {
     let siteData;
     
     // Attempt AI generation first
-    const generatedContent = await generateSiteContent(businessName, businessType);
+    const generatedContent = await generateSiteContent(businessName, businessType, businessDescription);
     
     if (generatedContent) {
       // Use AI-generated content

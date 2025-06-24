@@ -1,6 +1,7 @@
 // src/components/Header.jsx
 import { useState, useEffect } from 'react'
 import { Menu, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 function Header({ siteTitle, logoUrl, config, primaryColor }) {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -54,6 +55,16 @@ function Header({ siteTitle, logoUrl, config, primaryColor }) {
               <a href='#contact' onClick={e => handleNavClick(e, 'contact')} className={`px-6 py-2 rounded-full font-medium hover:scale-105 transition-all ${scrolled ? `${colorClasses.bg} text-white hover:opacity-90` : 'bg-white text-gray-900 hover:bg-gray-100'}`}>
                 Book Now
               </a>
+              <Link 
+                to="/create" 
+                className={`px-6 py-2 rounded-full font-medium ml-4 hover:scale-105 transition-all ${
+                  scrolled 
+                    ? `${colorClasses.bg} text-white hover:opacity-90` 
+                    : 'bg-white text-gray-900 hover:bg-gray-100'
+                }`}
+              >
+                Create Your Site
+              </Link>
             </nav>
             <button onClick={() => setMenuOpen(!menuOpen)} className={`lg:hidden p-2 rounded-lg ${scrolled ? 'text-gray-700 hover:bg-gray-100' : 'text-white hover:bg-white/10'}`}>
               {menuOpen ? <X size={24} /> : <Menu size={24} />}
