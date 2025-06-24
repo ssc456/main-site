@@ -27,7 +27,7 @@ async function triggerBuildWithGitCommit(siteId) {
   const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
   const owner = 'ssc456';  // Your GitHub username
   const repo = 'bizbud-template-site';  // Your repository name
-  const branch = 'main';   // Your default branch (could be 'master' if it's an older repo)
+  const branch = 'master';   // Your default branch (could be 'master' if it's an older repo)
   
   // 1. Get the latest commit on main branch to use as base
   const { data: refData } = await octokit.git.getRef({
