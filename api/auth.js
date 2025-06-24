@@ -61,9 +61,9 @@ export default async function handler(req, res) {
     const isValid = await bcrypt.compare(password, storedHash);
 
     
-    // if (!isValid) {
-    //   return res.status(401).json({ error: 'Invalid password' });
-    // }
+    if (!isValid) {
+      return res.status(401).json({ error: 'Invalid password' });
+    }
 
     // Generate token
     const sessionToken = uuidv4();

@@ -48,6 +48,10 @@ export default async function handler(req, res) {
     if (!redis) {
       throw new Error('Redis connection not available');
     }
+
+    if (siteId == "entry-nets" || siteId == "coastal-breeze") {
+      return res.status(403).json({ error: 'Cannot delete the entry-nets or coastal-breeze site' });
+    }
     
     console.log(`[DeleteSite API] Attempting to delete site: ${siteId}`);
     
