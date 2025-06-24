@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { motion, useScroll, useTransform } from "framer-motion";
+import { useNavigate } from 'react-router-dom';
 
 function HeroSection({
   headline,
@@ -14,6 +15,7 @@ function HeroSection({
 }) {
   const [isVisible, setIsVisible] = useState(false);
   const sectionRef = useRef(null);
+  const navigate = useNavigate();
   
   // Split headline into words for animation
   const words = headline?.split(' ') || ["Welcome"];
@@ -184,16 +186,16 @@ const scrollToNext = () => {
                 transition={{ duration: 0.6, delay: 0.9 }}
               >
                 <button
-                  onClick={handleCTAClick}
+                  onClick={() => navigate('/create')}
                   className={`group px-8 py-4 ${colorClasses.button} text-white font-semibold rounded-full shadow-xl hover:shadow-2xl ${colorClasses.glow} transform hover:scale-105 transition-all duration-300 flex items-center space-x-2`}
                 >
                   <motion.span
                     initial={{ x: 0 }}
                     whileHover={{ x: 4 }}
                   >
-                    {ctaText || "Get Started"}
+                    Create Your Site
                   </motion.span>
-                  <ChevronDown size={20} className="group-hover:translate-x-1 transition-transform" />
+                  <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
                 </button>
                 
                 <button
