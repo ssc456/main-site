@@ -176,7 +176,7 @@ function App() {
             <Header siteTitle={content.siteTitle} logoUrl={content.logoUrl} config={config} primaryColor={config.primaryColor} />
             <AnimatePresence mode='wait'>
               {config.showHero && <ThemedHeroSection key='hero' {...content.hero} primaryColor={config.primaryColor} />}
-              {config.showAbout && <ThemedAboutSection key='about' {...content.about} primaryColor={config.primaryColor} />}
+              {config.showAbout && <ThemedAboutSection key='about' {...content.about} primaryColor={config.primaryColor} logoUrl={content.logoUrl} />}
               {config.showServices && <ThemedServicesSection key='services' {...content.services} primaryColor={config.primaryColor} secondaryColor={config.secondaryColor} />}
               {config.showFeatures && <ThemedFeaturesSection key='features' {...content.features} primaryColor={config.primaryColor} />}
               {config.showGallery && <ThemedGallerySection key='gallery' {...content.gallery} primaryColor={config.primaryColor} />}
