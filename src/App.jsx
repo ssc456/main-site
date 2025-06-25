@@ -3,15 +3,7 @@ import { useEffect, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Header from './components/Header'
-import HeroSection from './components/HeroSection'
-import AboutSection from './components/AboutSection'
-import ServicesSection from './components/ServicesSection'
-import FeaturesSection from './components/FeaturesSection'
-import GallerySection from './components/GallerySection'
-import TestimonialsSection from './components/TestimonialsSection'
-import FAQSection from './components/FAQSection'
-import ContactSection from './components/ContactSection'
-import Footer from './components/Footer'
+import { getThemedComponent } from './themes';
 import AdminLogin from './admin/AdminLogin';
 import AdminDashboard from './admin/AdminDashboard';
 import CreateSite from './pages/CreateSite';
@@ -160,6 +152,19 @@ function App() {
 
   if (!content || !config) return null
 
+  // Get theme from config
+  const theme = config.theme || 'default';
+
+  // Get themed components
+  const ThemedHeroSection = getThemedComponent('HeroSection', theme);
+  const ThemedAboutSection = getThemedComponent('AboutSection', theme);
+  const ThemedServicesSection = getThemedComponent('ServicesSection', theme);
+  const ThemedFeaturesSection = getThemedComponent('FeaturesSection', theme);
+  const ThemedGallerySection = getThemedComponent('GallerySection', theme);
+  const ThemedTestimonialsSection = getThemedComponent('TestimonialsSection', theme);
+  const ThemedFAQSection = getThemedComponent('FAQSection', theme);
+  const ThemedContactSection = getThemedComponent('ContactSection', theme);
+  
   return (
     <BrowserRouter>
       <Routes>
@@ -170,18 +175,15 @@ function App() {
           <div className='min-h-screen bg-white scroll-smooth'>
             <Header siteTitle={content.siteTitle} logoUrl={content.logoUrl} config={config} primaryColor={config.primaryColor} />
             <AnimatePresence mode='wait'>
-              {config.showHero && (
-                <HeroSection key='hero' {...content.hero} primaryColor={config.primaryColor} secondaryColor={config.secondaryColor} animations={config.animations} />
-              )}
-              {config.showAbout && <AboutSection key='about' {...content.about} primaryColor={config.primaryColor} />}
-              {config.showServices && <ServicesSection key='services' {...content.services} primaryColor={config.primaryColor} secondaryColor={config.secondaryColor} />}
-              {config.showFeatures && <FeaturesSection key='features' {...content.features} primaryColor={config.primaryColor} />}
-              {config.showGallery && <GallerySection key='gallery' {...content.gallery} primaryColor={config.primaryColor} />}
-              {config.showTestimonials && <TestimonialsSection key='testimonials' {...content.testimonials} primaryColor={config.primaryColor} />}
-              {config.showFAQ && <FAQSection key='faq' {...content.faq} primaryColor={config.primaryColor} />}
-              {config.showContact && <ContactSection key='contact' {...content.contact} primaryColor={config.primaryColor} />}
+              {config.showHero && <ThemedHeroSection key='hero' {...content.hero} primaryColor={config.primaryColor} />}
+              {config.showAbout && <ThemedAboutSection key='about' {...content.about} primaryColor={config.primaryColor} />}
+              {config.showServices && <ThemedServicesSection key='services' {...content.services} primaryColor={config.primaryColor} secondaryColor={config.secondaryColor} />}
+              {config.showFeatures && <ThemedFeaturesSection key='features' {...content.features} primaryColor={config.primaryColor} />}
+              {config.showGallery && <ThemedGallerySection key='gallery' {...content.gallery} primaryColor={config.primaryColor} />}
+              {config.showTestimonials && <ThemedTestimonialsSection key='testimonials' {...content.testimonials} primaryColor={config.primaryColor} />}
+              {config.showFAQ && <ThemedFAQSection key='faq' {...content.faq} primaryColor={config.primaryColor} />}
+              {config.showContact && <ThemedContactSection key='contact' {...content.contact} primaryColor={config.primaryColor} />}
             </AnimatePresence>
-            <Footer social={content.social} primaryColor={config.primaryColor} siteTitle={content.siteTitle} />
           </div>
         } />
       </Routes>
