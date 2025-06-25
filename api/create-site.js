@@ -380,7 +380,12 @@ export default async function handler(req, res) {
     const envVars = [
       { key: 'KV_REST_API_URL', value: process.env.KV_REST_API_URL, type: 'encrypted', target: ['production', 'preview', 'development'] },
       { key: 'KV_REST_API_TOKEN', value: process.env.KV_REST_API_TOKEN, type: 'encrypted', target: ['production', 'preview', 'development'] },
-      { key: 'VITE_SITE_ID', value: siteId, type: 'plain', target: ['production', 'preview', 'development'] }
+      { key: 'VITE_SITE_ID', value: siteId, type: 'plain', target: ['production', 'preview', 'development'] },
+      
+      // Add Cloudinary credentials
+      { key: 'CLOUDINARY_CLOUD_NAME', value: process.env.CLOUDINARY_CLOUD_NAME, type: 'encrypted', target: ['production', 'preview', 'development'] },
+      { key: 'CLOUDINARY_API_KEY', value: process.env.CLOUDINARY_API_KEY, type: 'encrypted', target: ['production', 'preview', 'development'] },
+      { key: 'CLOUDINARY_API_SECRET', value: process.env.CLOUDINARY_API_SECRET, type: 'encrypted', target: ['production', 'preview', 'development'] }
     ];
     await axios.post(
       `https://api.vercel.com/v10/projects/${projectId}/env?upsert=true`,
