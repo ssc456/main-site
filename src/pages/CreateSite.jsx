@@ -17,7 +17,8 @@ export default function CreateSite() {
     siteId: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    includeAppointments: false, // New field for appointment booking
   });
   
   // Generated site info after creation
@@ -128,7 +129,8 @@ export default function CreateSite() {
           businessDescription: formData.businessDescription,
           siteId: formData.siteId,
           email: formData.email,
-          password: formData.password
+          password: formData.password,
+          includeAppointments: formData.includeAppointments || false
         })
       });
       
@@ -301,6 +303,23 @@ export default function CreateSite() {
                     className="w-full border border-gray-300 rounded-md px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
                     placeholder="Describe your services, target customers, unique selling points, etc. The more detail you provide, the better your website will be!"
                   />
+                </div>
+                
+                {/* New Appointment Booking Option */}
+                <div className="mt-4">
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      name="includeAppointments"
+                      checked={formData.includeAppointments}
+                      onChange={(e) => setFormData({...formData, includeAppointments: e.target.checked})}
+                      className="form-checkbox h-5 w-5 text-blue-600"
+                    />
+                    <span className="ml-2 text-gray-700">Include appointment booking system</span>
+                  </label>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Allow customers to book appointments on your website
+                  </p>
                 </div>
               </motion.div>
             )}

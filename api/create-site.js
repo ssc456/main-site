@@ -136,7 +136,8 @@ const ClientSiteSchema = z.object({
     showTestimonials: z.boolean(),
     showGallery: z.boolean(),
     showContact: z.boolean(),
-    showFAQ: z.boolean()
+    showFAQ: z.boolean(),
+    showAppointments: z.boolean().default(false) // Add this line
   })
 });
 
@@ -296,7 +297,7 @@ export default async function handler(req, res) {
   if (!auth.startsWith('Bearer ') || (auth !== 'Bearer public-website' && !validateAdminToken(auth)))
     return res.status(401).json({ error: 'Authentication required' });
 
-  const { siteId, businessName, businessType = '', businessDescription = '', password, email = '' } = req.body;
+  const { siteId, businessName, businessType = '', businessDescription = '', password, email = '', includeAppointments = false } = req.body;
   if (!siteId || !businessName || !password)
     return res.status(400).json({ error: 'Missing required fields (siteId, businessName, password)' });
   if (!/^[a-z0-9-]+$/.test(siteId))
@@ -328,6 +329,11 @@ export default async function handler(req, res) {
       // Ensure these fields are properly set from request data
       siteData.siteTitle = businessName;
       if (businessType) siteData.businessType = businessType;
+      
+      // Set appointment flag if requested
+      if (siteData.config) {
+        siteData.config.showAppointments = includeAppointments || false;
+      }
     } else {
       // Fallback to template if AI generation failed
       console.log('[CreateSite] AI generation failed, falling back to template "coastal-breeze"');
