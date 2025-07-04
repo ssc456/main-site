@@ -48,15 +48,33 @@ export default function AdminDashboard() {
     
     const fetchData = async () => {
       try {
-        const token = localStorage.getItem('adminToken');
-        if (!token) {
-          setError('Not authenticated');
+        const extractedSiteId = extractSiteId();
+        
+        // Get CSRF token from sessionStorage
+        const csrfToken = sessionStorage.getItem('csrfToken');
+        
+        // Verify token is valid for this site
+        const validateResponse = await fetch(`/api/validate-token?siteId=${extractedSiteId}`, {
+          credentials: 'include', // Important for cookies
+          headers: {
+            'X-CSRF-Token': csrfToken || ''
+          }
+        });
+        
+        if (!validateResponse.ok) {
+          // Force logout if token isn't valid for this site
           window.location.href = '/admin';
           return;
         }
         
-        console.log('Fetching data for site:', extractedSiteId);
-        const response = await fetch(`/api/get-client-data?siteId=${extractedSiteId}`);
+        // Continue with data fetching
+        const response = await fetch(`/api/get-client-data?siteId=${extractedSiteId}`, {
+          credentials: 'include', // Important for cookies
+          headers: {
+            'X-CSRF-Token': csrfToken || ''
+          }
+        });
+        
         if (!response.ok) {
           throw new Error('Failed to load site data');
         }
@@ -89,14 +107,16 @@ export default function AdminDashboard() {
     
     setSaving(true);
     try {
-      const token = localStorage.getItem('adminToken');
+      // Get CSRF token from sessionStorage
+      const csrfToken = sessionStorage.getItem('csrfToken');
       
       const response = await fetch('/api/save-client-data', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'X-CSRF-Token': csrfToken || ''
         },
+        credentials: 'include', // Important for cookies
         body: JSON.stringify({ clientData })
       });
       

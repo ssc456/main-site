@@ -76,4 +76,25 @@ export default async function handler(req, res) {
     console.error('[Get Data API] Error:', error);
     return res.status(500).json({ error: 'Failed to fetch client data: ' + error.message });
   }
+  
+  // Add CSRF validation similar to save-client-data.js
+
+  // Extract token from cookie
+  const cookies = req.cookies || {};
+  const authToken = cookies.adminToken;
+  const { siteId } = req.query;
+
+  // Additional security check - token must be for the requested site
+  const tokenSiteId = await redis.get(`auth:${authToken}`);
+  if (!tokenSiteId || tokenSiteId !== siteId) {
+    return res.status(403).json({ error: 'Not authorized to access this site' });
+  }
+
+  // Verify CSRF token for sensitive operations (you can decide if this is needed for GET)
+  const csrfHeader = req.headers['x-csrf-token'];
+  const storedCsrfToken = await redis.get(`csrf:${authToken}`);
+
+  if (!csrfHeader || !storedCsrfToken || csrfHeader !== storedCsrfToken) {
+    return res.status(403).json({ error: 'Invalid CSRF token' });
+  }
 }

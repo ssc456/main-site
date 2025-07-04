@@ -23,21 +23,29 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Verify authentication
-  const authToken = req.headers.authorization?.split(' ')[1];
-  
+  // Extract token from cookie
+  const cookies = req.cookies || {};
+  const authToken = cookies.adminToken;
+
   if (!authToken) {
     return res.status(401).json({ error: 'Authentication required' });
   }
-  
+
+  // Verify CSRF token
+  const csrfHeader = req.headers['x-csrf-token'];
+  const storedCsrfToken = await redis.get(`csrf:${authToken}`);
+
+  if (!csrfHeader || !storedCsrfToken || csrfHeader !== storedCsrfToken) {
+    return res.status(403).json({ error: 'Invalid CSRF token' });
+  }
+
   if (!redis) {
     return res.status(503).json({ error: 'Database connection unavailable' });
   }
   
   try {
-    // Check if token is valid
+    // Get the site ID associated with this token
     const siteId = await redis.get(`auth:${authToken}`);
-    
     if (!siteId) {
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
