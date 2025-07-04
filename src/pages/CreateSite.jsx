@@ -158,7 +158,8 @@ export default function CreateSite() {
     
     const checkStatus = async () => {
       try {
-        const response = await fetch(`/api/sites?siteId=${createdSite.siteId}&action=status`);
+        // Use the parameter instead of createdSite.siteId
+        const response = await fetch(`/api/sites?siteId=${siteId}&action=status`);
         if (!response.ok) throw new Error('Failed to check status');
         const data = await response.json();
         
