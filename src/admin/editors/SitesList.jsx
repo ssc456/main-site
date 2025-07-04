@@ -34,7 +34,7 @@ export default function SitesList() {
         return;
       }
       
-      const response = await fetch('/api/list-sites', {
+      const response = await fetch('/api/sites', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
