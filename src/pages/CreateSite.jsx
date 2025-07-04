@@ -138,10 +138,19 @@ export default function CreateSite() {
       }
       
       const data = await response.json();
+      console.log("API response:", data); // Add this logging
+
+      if (!data || !data.siteId) {
+        console.error("Invalid API response - missing siteId:", data);
+        setError("Created site successfully, but couldn't start build monitoring");
+        setCreatedSite({ siteId: formData.siteId }); // Fallback to form data
+        setStep(4);
+        return;
+      }
+
       setCreatedSite(data);
-      setStep(4); // Move to success step
-      
-      // Begin polling for build status
+      setStep(4);
+      console.log("Starting polling with siteId:", data.siteId);
       pollBuildStatus(data.siteId);
       
     } catch (err) {
@@ -154,14 +163,24 @@ export default function CreateSite() {
   
   // Poll build status
   const pollBuildStatus = async (siteId) => {
+    if (!siteId) {
+      console.error("pollBuildStatus called with invalid siteId:", siteId);
+      setBuildStatus('unknown');
+      return;
+    }
+    
+    console.log(`Starting build status polling for site: ${siteId}`);
     setBuildStatus('building');
     
     const checkStatus = async () => {
       try {
-        // Use the parameter instead of createdSite.siteId
+        console.log(`Making status check request for: ${siteId}`);
         const response = await fetch(`/api/sites?siteId=${siteId}&action=status`);
+        console.log("Status response:", response.status);
+        
         if (!response.ok) throw new Error('Failed to check status');
         const data = await response.json();
+        console.log("Status data:", data);
         
         if (data.status === 'ready') {
           setBuildStatus('ready');
@@ -410,7 +429,7 @@ export default function CreateSite() {
                     <p className="text-lg text-gray-600 mb-4">Your website is now ready!</p>
                     <div className="flex flex-col space-y-4 items-center">
                       <a 
-                        href={`https://${createdSite.siteId}.vercel.app`}
+                        href={`https://${createdSite?.siteId}.vercel.app`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
@@ -418,7 +437,7 @@ export default function CreateSite() {
                         Visit Your Website
                       </a>
                       <a 
-                        href={`https://${createdSite.siteId}.vercel.app/admin`}
+                        href={`https://${createdSite?.siteId}.vercel.app/admin`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-6 py-3 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 transition-colors"
@@ -436,7 +455,7 @@ export default function CreateSite() {
                     </p>
                     <div className="flex flex-col space-y-4 items-center">
                       <a 
-                        href={`https://${createdSite.siteId}.vercel.app`}
+                        href={`https://${createdSite?.siteId}.vercel.app`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
