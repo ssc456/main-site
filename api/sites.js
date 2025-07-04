@@ -32,13 +32,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Check authentication
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
-  
-  const token = authHeader.replace('Bearer ', '');
   const { siteId, action } = req.query;
   
   try {
@@ -46,12 +39,19 @@ export default async function handler(req, res) {
       throw new Error('Redis connection not available');
     }
 
-    // If siteId and action=status, return site status
+    // If checking site status, allow without authentication
     if (siteId && action === 'status') {
       return handleSiteStatus(req, res, siteId);
     }
     
-    // Otherwise list all sites (original list-sites functionality)
+    // For listing all sites, require authentication
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authentication required for this operation' });
+    }
+    
+    const token = authHeader.replace('Bearer ', '');
+    
     // Scan for site:*:client keys to find all sites
     console.log('[Sites API] Scanning for site keys');
     const keys = await redis.keys('site:*:client');
@@ -85,7 +85,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ sites });
   } catch (error) {
     console.error('[Sites API] Error:', error);
-    return res.status(500).json({ error: 'Failed to list sites' });
+    return res.status(500).json({ error: 'Failed to perform operation' });
   }
 }
 
