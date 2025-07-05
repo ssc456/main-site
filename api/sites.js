@@ -72,12 +72,23 @@ export default async function handler(req, res) {
       return handleSiteStatus(req, res, siteId);
     }
     
-    // For listing all sites, require authentication
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // For listing all sites, require either cookie auth or bearer auth
+    // We've already verified cookie auth above, so only need to check if we're using that method
+    let isAuthenticated = false;
+    
+    if (authToken) {
+      // We already validated the cookie auth + CSRF above
+      isAuthenticated = true;
+    } else if (authHeader?.startsWith('Bearer ')) {
+      // Using Bearer auth - already extracted token above
+      isAuthenticated = true;
+    }
+    
+    if (!isAuthenticated) {
       return res.status(401).json({ error: 'Authentication required for this operation' });
     }
     
-    const token = authHeader.replace('Bearer ', '');
+    // Use the token we already extracted earlier (don't redeclare)
     
     // Scan for site:*:client keys to find all sites
     console.log('[Sites API] Scanning for site keys');
