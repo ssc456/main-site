@@ -39,6 +39,11 @@ export default async function handler(req, res) {
       throw new Error('Redis connection not available');
     }
 
+        // First, check if this is a public endpoint that doesn't need auth
+    if (siteId && action === 'status') {
+      return handleSiteStatus(req, res, siteId);
+    }
+
     // Check authentication (supports both cookie auth and bearer token)
     const authToken = req.cookies?.adminToken;
     const authHeader = req.headers.authorization;
