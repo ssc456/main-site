@@ -207,6 +207,39 @@ export default function SitesList() {
     }
   };
   
+  // Add this to the SitesList component
+  const togglePaymentTier = async (siteId, currentTier) => {
+    if (!confirm(`Are you sure you want to change the payment tier for ${siteId}?`)) {
+      return;
+    }
+    
+    try {
+      const csrfToken = sessionStorage.getItem('csrfToken');
+      
+      const newTier = currentTier === 'PREMIUM' ? 'FREE' : 'PREMIUM';
+      
+      const response = await fetch('/api/update-payment-tier', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken || ''
+        },
+        credentials: 'include',
+        body: JSON.stringify({ siteId, paymentTier: newTier })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to update payment tier');
+      }
+      
+      toast.success(`Site ${siteId} payment tier changed to ${newTier}`);
+      fetchSites(); // Refresh the site list
+    } catch (error) {
+      console.error('Error updating payment tier:', error);
+      toast.error(error.message);
+    }
+  };
+  
   if (loading) {
     return (
       <div className="p-6 bg-white rounded-lg shadow-sm">
@@ -274,6 +307,9 @@ export default function SitesList() {
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     URL
                   </th>
+                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Payment Tier
+                  </th>
                   <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Actions
                   </th>
@@ -305,6 +341,28 @@ export default function SitesList() {
                       >
                         {site.siteId}.vercel.app
                       </a>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <span 
+                          className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            site.paymentTier === 'PREMIUM' 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-yellow-100 text-yellow-800'
+                          }`}
+                        >
+                          {site.paymentTier || 'FREE'}
+                        </span>
+                        <button
+                          onClick={() => togglePaymentTier(site.siteId, site.paymentTier || 'FREE')}
+                          className="ml-2 text-gray-500 hover:text-gray-700"
+                          title="Toggle payment tier"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
                       <div className="flex justify-center space-x-3">

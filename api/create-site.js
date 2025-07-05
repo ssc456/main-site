@@ -427,6 +427,11 @@ export default async function handler(req, res) {
     // Create password hash
     const pwdHash = await bcrypt.hash(password, 12);
 
+    // Update site data schema to include paymentTier
+    siteData.paymentTier = 'FREE';  // 'FREE' or 'PREMIUM'
+    siteData.stripeCustomerId = null;  // Will be populated after payment
+    siteData.subscriptionId = null;   // For recurring subscriptions
+
     // Store site data in Redis
     await redis.set(`site:${siteId}:client`, siteData);
     await redis.set(`site:${siteId}:settings`, {
@@ -465,13 +470,16 @@ export default async function handler(req, res) {
       { key: 'KV_REST_API_URL', value: process.env.KV_REST_API_URL, type: 'encrypted', target: ['production', 'preview', 'development'] },
       { key: 'KV_REST_API_TOKEN', value: process.env.KV_REST_API_TOKEN, type: 'encrypted', target: ['production', 'preview', 'development'] },
       { key: 'VITE_SITE_ID', value: siteId, type: 'plain', target: ['production', 'preview', 'development'] },
-      
-      // Add Cloudinary credentials
       { key: 'CLOUDINARY_CLOUD_NAME', value: process.env.CLOUDINARY_CLOUD_NAME, type: 'encrypted', target: ['production', 'preview', 'development'] },
       { key: 'CLOUDINARY_API_KEY', value: process.env.CLOUDINARY_API_KEY, type: 'encrypted', target: ['production', 'preview', 'development'] },
       { key: 'CLOUDINARY_API_SECRET', value: process.env.CLOUDINARY_API_SECRET, type: 'encrypted', target: ['production', 'preview', 'development'] },
       { key: 'RESEND_API_KEY', value: process.env.RESEND_API_KEY, type: 'encrypted', target: ['production', 'preview', 'development'] },
       { key: 'EMAIL_FROM', value: siteId + '@entrynets.com', type: 'plain', target: ['production', 'preview', 'development'] },
+      { key: 'STRIPE_PUBLISHABLE_KEY', value: process.env.STRIPE_PUBLISHABLE_KEY, type: 'encrypted', target: ['production', 'preview', 'development'] },
+      { key: 'STRIPE_SECRET_KEY', value: process.env.STRIPE_SECRET_KEY, type: 'encrypted', target: ['production', 'preview', 'development'] },
+      { key: 'STRIPE_WEBHOOK_SECRET', value: process.env.STRIPE_WEBHOOK_SECRET, type: 'encrypted', target: ['production', 'preview', 'development'] },
+      { key: 'STRIPE_MONTHLY_PRICE_ID', value: process.env.STRIPE_MONTHLY_PRICE_ID, type: 'encrypted', target: ['production', 'preview', 'development'] },
+      { key: 'STRIPE_ONE_TIME_PRICE_ID', value: process.env.STRIPE_ONE_TIME_PRICE_ID, type: 'encrypted', target: ['production', 'preview', 'development'] },
     ];
     await axios.post(
       `https://api.vercel.com/v10/projects/${projectId}/env?upsert=true`,

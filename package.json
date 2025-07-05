@@ -12,6 +12,7 @@
   "dependencies": {
     "@heroicons/react": "^2.2.0",
     "@octokit/rest": "^22.0.0",
+    "@stripe/stripe-js": "^7.4.0",
     "@studio-freight/lenis": "^1.0.42",
     "@upstash/redis": "^1.35.0",
     "axios": "^1.10.0",
@@ -28,6 +29,7 @@
     "react-toastify": "^11.0.5",
     "react-tsparticles": "^2.12.2",
     "resend": "^4.6.0",
+    "stripe": "^18.3.0",
     "tsparticles": "^3.8.1",
     "uuid": "^11.1.0",
     "zod": "^3.25.67"
