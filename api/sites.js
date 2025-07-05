@@ -39,13 +39,40 @@ export default async function handler(req, res) {
       throw new Error('Redis connection not available');
     }
 
+    // Check authentication (supports both cookie auth and bearer token)
+    const authToken = req.cookies?.adminToken;
+    const authHeader = req.headers.authorization;
+
+    // No authentication provided
+    if (!authToken && !authHeader) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // If using bearer token from header
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.replace('Bearer ', '');
+      // Validate token
+      // ...
+    }
+
+    // If using cookie authentication
+    if (authToken) {
+      // Verify CSRF token if needed
+      const csrfHeader = req.headers['x-csrf-token'];
+      const storedCsrfToken = await redis.get(`csrf:${authToken}`);
+      
+      if (!csrfHeader || !storedCsrfToken || csrfHeader !== storedCsrfToken) {
+        return res.status(403).json({ error: 'Invalid CSRF token' });
+      }
+      // Proceed with authenticated request
+    }
+
     // If checking site status, allow without authentication
     if (siteId && action === 'status') {
       return handleSiteStatus(req, res, siteId);
     }
     
     // For listing all sites, require authentication
-    const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ error: 'Authentication required for this operation' });
     }

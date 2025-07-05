@@ -28,15 +28,13 @@ export default function SitesList() {
   
   const fetchSites = async () => {
     try {
-      const token = localStorage.getItem('adminToken');
-      if (!token) {
-        setError('Not authenticated');
-        return;
-      }
+      // Get CSRF token from sessionStorage (same as AdminDashboard)
+      const csrfToken = sessionStorage.getItem('csrfToken');
       
       const response = await fetch('/api/sites', {
+        credentials: 'include',  // Include cookies for auth
         headers: {
-          'Authorization': `Bearer ${token}`
+          'X-CSRF-Token': csrfToken || ''
         }
       });
       
@@ -45,7 +43,6 @@ export default function SitesList() {
       }
       
       const data = await response.json();
-      console.log('Fetched sites data:', data);
       setSites(data.sites || []);
     } catch (err) {
       console.error('Error fetching sites:', err);
