@@ -475,7 +475,7 @@ export default async function handler(req, res) {
       { key: 'CLOUDINARY_API_SECRET', value: process.env.CLOUDINARY_API_SECRET, type: 'encrypted', target: ['production', 'preview', 'development'] },
       { key: 'RESEND_API_KEY', value: process.env.RESEND_API_KEY, type: 'encrypted', target: ['production', 'preview', 'development'] },
       { key: 'EMAIL_FROM', value: siteId + '@entrynets.com', type: 'plain', target: ['production', 'preview', 'development'] },
-      { key: 'STRIPE_PUBLISHABLE_KEY', value: process.env.STRIPE_PUBLISHABLE_KEY, type: 'encrypted', target: ['production', 'preview', 'development'] },
+      { key: 'STRIPE_PUBLISHABLE_KEY', value: process.env.STRIPE_PUBLISHABLE_KEY, type: 'plain', target: ['production', 'preview', 'development'] },
       { key: 'STRIPE_SECRET_KEY', value: process.env.STRIPE_SECRET_KEY, type: 'encrypted', target: ['production', 'preview', 'development'] },
       { key: 'STRIPE_WEBHOOK_SECRET', value: process.env.STRIPE_WEBHOOK_SECRET, type: 'encrypted', target: ['production', 'preview', 'development'] },
       { key: 'STRIPE_MONTHLY_PRICE_ID', value: process.env.STRIPE_MONTHLY_PRICE_ID, type: 'encrypted', target: ['production', 'preview', 'development'] },
