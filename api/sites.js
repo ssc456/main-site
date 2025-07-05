@@ -130,6 +130,7 @@ export default async function handler(req, res) {
 // Site status function (previously in site-status.js)
 async function handleSiteStatus(req, res, siteId) {
   try {
+    // Remove any authentication requirements here - site status should be public
     const vercelToken = process.env.VERCEL_API_TOKEN;
     const headers = { Authorization: `Bearer ${vercelToken}` };
     
