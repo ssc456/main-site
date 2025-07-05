@@ -17,6 +17,7 @@ import { Octokit } from '@octokit/rest';
 import { OpenAI } from 'openai';
 import { z } from 'zod';
 import { zodTextFormat } from 'openai/helpers/zod';
+import { Resend } from 'resend';
 
 /* ───────── Client initialization ───────── */
 // Redis client
@@ -32,6 +33,14 @@ const redis = (() => {
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+// Resend client for email sending
+const resend = (() => {
+  const apiKey = process.env.RESEND_API_KEY;
+  console.log('[Init] Resend API key present:', !!apiKey);
+  if (!apiKey) return null;
+  return new Resend(apiKey);
+})();
 
 /* ───────── Schema definitions for content validation ───────── */
 // Service and feature items
@@ -280,6 +289,75 @@ async function triggerBuildWithGitCommit(siteId) {
   return newCommitData.sha;
 }
 
+/* ───────── Email notification function ───────── */
+async function sendWelcomeEmail(userEmail, siteId, businessName) {
+  if (!resend) {
+    console.warn('[Email] Resend client not available, skipping welcome email');
+    return false;
+  }
+  
+  try {
+    const fromEmail = process.env.EMAIL_FROM || 'notifications@entrynets.com';
+    console.log(`[Email] Sending welcome email to ${userEmail} from ${fromEmail}`);
+    
+    const { data, error } = await resend.emails.send({
+      from: fromEmail,
+      to: userEmail,
+      subject: `Your ${businessName} Website is Ready!`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: #4F46E5; padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0;">Your Website is Live!</h1>
+          </div>
+          
+          <div style="padding: 20px; background-color: #f9fafb; border-bottom: 1px solid #e5e7eb;">
+            <h2>Hello,</h2>
+            <p>Great news! Your website for <strong>${businessName}</strong> has been successfully created and is now live.</p>
+            
+            <div style="margin: 30px 0; text-align: center;">
+              <a href="https://${siteId}.vercel.app" 
+                 style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
+                View Your Website
+              </a>
+            </div>
+            
+            <h3>Important Links:</h3>
+            <ul>
+              <li>Website URL: <a href="https://${siteId}.vercel.app">https://${siteId}.vercel.app</a></li>
+              <li>Admin Dashboard: <a href="https://${siteId}.vercel.app/admin">https://${siteId}.vercel.app/admin</a></li>
+            </ul>
+            
+            <p>You can log in to your admin dashboard using the email and password you provided during signup.</p>
+            
+            <h3>What's Next?</h3>
+            <ul>
+              <li>Log in to your admin dashboard to customize your website content</li>
+              <li>Add your own images and text</li>
+              <li>Connect your custom domain if you have one</li>
+            </ul>
+          </div>
+          
+          <div style="padding: 20px; text-align: center; color: #6b7280; font-size: 14px;">
+            <p>Thank you for choosing EntryNets for your web presence!</p>
+            <p>If you have any questions, please reply to this email or contact support.</p>
+          </div>
+        </div>
+      `
+    });
+    
+    if (error) {
+      console.error('[Email] Error sending welcome email:', error);
+      return false;
+    }
+    
+    console.log('[Email] Welcome email sent successfully:', data?.id);
+    return true;
+  } catch (error) {
+    console.error('[Email] Exception sending welcome email:', error);
+    return false;
+  }
+}
+
 /* ───────── HTTP handler ───────── */
 export default async function handler(req, res) {
   /* CORS + verb guard */
@@ -391,7 +469,9 @@ export default async function handler(req, res) {
       // Add Cloudinary credentials
       { key: 'CLOUDINARY_CLOUD_NAME', value: process.env.CLOUDINARY_CLOUD_NAME, type: 'encrypted', target: ['production', 'preview', 'development'] },
       { key: 'CLOUDINARY_API_KEY', value: process.env.CLOUDINARY_API_KEY, type: 'encrypted', target: ['production', 'preview', 'development'] },
-      { key: 'CLOUDINARY_API_SECRET', value: process.env.CLOUDINARY_API_SECRET, type: 'encrypted', target: ['production', 'preview', 'development'] }
+      { key: 'CLOUDINARY_API_SECRET', value: process.env.CLOUDINARY_API_SECRET, type: 'encrypted', target: ['production', 'preview', 'development'] },
+      { key: 'RESEND_API_KEY', value: process.env.RESEND_API_KEY, type: 'encrypted', target: ['production', 'preview', 'development'] },
+      { key: 'EMAIL_FROM', value: siteId + '@entrynets.com', type: 'plain', target: ['production', 'preview', 'development'] },
     ];
     await axios.post(
       `https://api.vercel.com/v10/projects/${projectId}/env?upsert=true`,
@@ -451,6 +531,19 @@ export default async function handler(req, res) {
         { headers: vcHeaders }
       );
       console.log('[Vercel] Updated project settings to disable auto-deployments');
+    }
+
+    /* ───── 6.5. Send welcome email ───── */
+    if (email) {
+      console.log('[Email] Attempting to send welcome email to:', email);
+      try {
+        await sendWelcomeEmail(email, siteId, businessName);
+      } catch (emailError) {
+        console.error('[Email] Error in email process:', emailError);
+        // Continue anyway, we don't want to fail the whole process if email fails
+      }
+    } else {
+      console.log('[Email] No email address provided, skipping welcome email');
     }
 
     /* ───── 7.  Response ───── */
