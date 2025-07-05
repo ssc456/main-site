@@ -54,21 +54,7 @@ export default function AdminDashboard() {
         const csrfToken = sessionStorage.getItem('csrfToken');
         
         // Verify token is valid for this site
-        const validateResponse = await fetch(`/api/validate-token?siteId=${extractedSiteId}`, {
-          credentials: 'include', // Important for cookies
-          headers: {
-            'X-CSRF-Token': csrfToken || ''
-          }
-        });
-        
-        if (!validateResponse.ok) {
-          // Force logout if token isn't valid for this site
-          window.location.href = '/admin';
-          return;
-        }
-        
-        // Continue with data fetching
-        const response = await fetch(`/api/get-client-data?siteId=${extractedSiteId}`, {
+        const response = await fetch(`/api/auth?action=validate&siteId=${extractedSiteId}`, {
           credentials: 'include', // Important for cookies
           headers: {
             'X-CSRF-Token': csrfToken || ''
@@ -76,10 +62,24 @@ export default function AdminDashboard() {
         });
         
         if (!response.ok) {
+          // Force logout if token isn't valid for this site
+          window.location.href = '/admin';
+          return;
+        }
+        
+        // Continue with data fetching
+        const dataResponse = await fetch(`/api/client-data?siteId=${extractedSiteId}`, {
+          credentials: 'include', // Important for cookies
+          headers: {
+            'X-CSRF-Token': csrfToken || ''
+          }
+        });
+        
+        if (!dataResponse.ok) {
           throw new Error('Failed to load site data');
         }
         
-        const data = await response.json();
+        const data = await dataResponse.json();
         setClientData(data);
         setOriginalData(JSON.parse(JSON.stringify(data))); // Deep copy
         setLoading(false);
