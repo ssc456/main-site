@@ -518,28 +518,28 @@ export default async function handler(req, res) {
 
     /* ───── 6. Disconnect GitHub immediately ───── */
     // We don't need to wait for build to finish, just for it to start
-    // console.log('[Vercel] Disconnecting GitHub...');
-    // try {
-    //   await axios.delete(
-    //     `https://api.vercel.com/v6/projects/${projectId}/link`,
-    //     { headers: vcHeaders }
-    //   );
-    //   console.log('[Vercel] GitHub connection removed');
-    // } catch (unlinkError) {
-    //   console.warn('[Vercel] GitHub unlinking failed:', unlinkError.response?.data || unlinkError);
-    //   // Fallback to disabling auto-deployments
-    //   await axios.patch(
-    //     `https://api.vercel.com/v9/projects/${projectId}`,
-    //     {
-    //       autoExposeSystemEnvs: false,
-    //       buildCommand: 'npm run build',
-    //       outputDirectory: 'dist',
-    //       framework: 'vite'
-    //     },
-    //     { headers: vcHeaders }
-    //   );
-    //   console.log('[Vercel] Updated project settings to disable auto-deployments');
-    // }
+    console.log('[Vercel] Disconnecting GitHub...');
+    try {
+      await axios.delete(
+        `https://api.vercel.com/v6/projects/${projectId}/link`,
+        { headers: vcHeaders }
+      );
+      console.log('[Vercel] GitHub connection removed');
+    } catch (unlinkError) {
+      console.warn('[Vercel] GitHub unlinking failed:', unlinkError.response?.data || unlinkError);
+      // Fallback to disabling auto-deployments
+      await axios.patch(
+        `https://api.vercel.com/v9/projects/${projectId}`,
+        {
+          autoExposeSystemEnvs: false,
+          buildCommand: 'npm run build',
+          outputDirectory: 'dist',
+          framework: 'vite'
+        },
+        { headers: vcHeaders }
+      );
+      console.log('[Vercel] Updated project settings to disable auto-deployments');
+    }
 
     /* ───── 6.5. Send welcome email ───── */
     if (email) {
