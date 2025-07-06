@@ -480,6 +480,8 @@ export default async function handler(req, res) {
       { key: 'STRIPE_WEBHOOK_SECRET', value: process.env.STRIPE_WEBHOOK_SECRET, type: 'encrypted', target: ['production', 'preview', 'development'] },
       { key: 'STRIPE_MONTHLY_PRICE_ID', value: process.env.STRIPE_MONTHLY_PRICE_ID, type: 'encrypted', target: ['production', 'preview', 'development'] },
       { key: 'STRIPE_ONE_TIME_PRICE_ID', value: process.env.STRIPE_ONE_TIME_PRICE_ID, type: 'encrypted', target: ['production', 'preview', 'development'] },
+      { key: 'STRIPE_YEARLY_PRICE_ID', value: process.env.STRIPE_ONE_TIME_PRICE_ID, type: 'encrypted', target: ['production', 'preview', 'development'] },
+
     ];
     await axios.post(
       `https://api.vercel.com/v10/projects/${projectId}/env?upsert=true`,
