@@ -256,32 +256,45 @@ export default function AdminDashboard() {
         
         {/* Content Area */}
         <div className="flex-1 flex overflow-hidden">
-          {/* Editing Area */}
-          <div className="w-1/2 overflow-y-auto p-6">
-            {clientData && (
+          {/* Conditional layout based on current route */}
+          {location.pathname.includes('/sites') ? (
+            // Full-width sites list without preview
+            <div className="w-full overflow-y-auto p-6">
               <Routes>
-                <Route path="/" element={<Dashboard clientData={clientData} />} />
-                <Route path="sites" element={<SitesList />} />
-                <Route path="general" element={<GeneralEditor clientData={clientData} setClientData={setClientData} />} />
-                <Route path="hero" element={<HeroEditor clientData={clientData} setClientData={setClientData} />} />
-                <Route path="about" element={<AboutEditor clientData={clientData} setClientData={setClientData} />} />
-                <Route path="services" element={<ServicesEditor clientData={clientData} setClientData={setClientData} />} />
-                <Route path="features" element={<FeaturesEditor clientData={clientData} setClientData={setClientData} />} />
-                <Route path="gallery" element={<GalleryEditor clientData={clientData} setClientData={setClientData} />} />
-                <Route path="testimonials" element={<TestimonialsEditor clientData={clientData} setClientData={setClientData} />} />
-                <Route path="faq" element={<FAQEditor clientData={clientData} setClientData={setClientData} />} />
-                <Route path="contact" element={<ContactEditor clientData={clientData} setClientData={setClientData} />} />
-                <Route path="social" element={<SocialEditor clientData={clientData} setClientData={setClientData} />} />
-                <Route path="config" element={<ConfigEditor clientData={clientData} setClientData={setClientData} />} />
-                <Route path="media" element={<MediaLibrary />} />
+                <Route path="/sites" element={<SitesList />} />
+                {/* Other routes... */}
               </Routes>
-            )}
-          </div>
-          
-          {/* Preview Area */}
-          <div className="w-1/2 border-l border-gray-200 overflow-hidden">
-            <PreviewFrame clientData={clientData} />
-          </div>
+            </div>
+          ) : (
+            // Original layout with preview for other sections
+            <>
+              {/* Editing Area */}
+              <div className="w-1/2 overflow-y-auto p-6">
+                {clientData && (
+                  <Routes>
+                    <Route path="/" element={<Dashboard clientData={clientData} />} />
+                    <Route path="/general" element={<GeneralEditor clientData={clientData} setClientData={setClientData} />} />
+                    <Route path="/hero" element={<HeroEditor clientData={clientData} setClientData={setClientData} />} />
+                    <Route path="/about" element={<AboutEditor clientData={clientData} setClientData={setClientData} />} />
+                    <Route path="/services" element={<ServicesEditor clientData={clientData} setClientData={setClientData} />} />
+                    <Route path="/features" element={<FeaturesEditor clientData={clientData} setClientData={setClientData} />} />
+                    <Route path="/gallery" element={<GalleryEditor clientData={clientData} setClientData={setClientData} />} />
+                    <Route path="/testimonials" element={<TestimonialsEditor clientData={clientData} setClientData={setClientData} />} />
+                    <Route path="/faq" element={<FAQEditor clientData={clientData} setClientData={setClientData} />} />
+                    <Route path="/contact" element={<ContactEditor clientData={clientData} setClientData={setClientData} />} />
+                    <Route path="/social" element={<SocialEditor clientData={clientData} setClientData={setClientData} />} />
+                    <Route path="/config" element={<ConfigEditor clientData={clientData} setClientData={setClientData} />} />
+                    <Route path="/media" element={<MediaLibrary />} />
+                  </Routes>
+                )}
+              </div>
+              
+              {/* Preview Area */}
+              <div className="w-1/2 border-l border-gray-200 overflow-hidden">
+                <PreviewFrame clientData={clientData} />
+              </div>
+            </>
+          )}
         </div>
       </div>
       
