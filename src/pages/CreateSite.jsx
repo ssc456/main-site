@@ -350,7 +350,7 @@ export default function CreateSite() {
                       className="flex-grow min-w-0 block w-full px-3 py-2 rounded-none rounded-l-md border border-gray-300 focus:ring-blue-500 focus:border-blue-500"
                     />
                     <span className="inline-flex items-center px-3 rounded-r-md border border-l-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
-                      .vercel.app
+                      entrynets.com
                     </span>
                   </div>
                   <p className="mt-1 text-sm text-gray-500">
@@ -448,7 +448,7 @@ export default function CreateSite() {
                     <p className="text-lg text-gray-600 mb-4">Your website is now ready!</p>
                     <div className="flex flex-col space-y-4 items-center">
                       <a 
-                        href={`https://${createdSite?.siteId}.vercel.app`}
+                        href={`https://${createdSite?.siteId}.entrynets.com`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
@@ -456,7 +456,7 @@ export default function CreateSite() {
                         Visit Your Website
                       </a>
                       <a 
-                        href={`https://${createdSite?.siteId}.vercel.app/admin`}
+                        href={`https://${createdSite?.siteId}.entrynets.com/admin`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-6 py-3 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 transition-colors"
@@ -474,7 +474,7 @@ export default function CreateSite() {
                     </p>
                     <div className="flex flex-col space-y-4 items-center">
                       <a 
-                        href={`https://${createdSite?.siteId}.vercel.app`}
+                        href={`https://${createdSite?.siteId}.entrynets.com`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
@@ -488,8 +488,8 @@ export default function CreateSite() {
                 <div className="mt-6 border-t border-gray-200 pt-6">
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Your website details</h3>
                   <div className="bg-gray-50 rounded-md p-4 text-left">
-                    <p><span className="font-medium">Website URL:</span> https://{createdSite?.siteId}.vercel.app</p>
-                    <p><span className="font-medium">Admin URL:</span> https://{createdSite?.siteId}.vercel.app/admin</p>
+                    <p><span className="font-medium">Website URL:</span> https://{createdSite?.siteId}.entrynets.com</p>
+                    <p><span className="font-medium">Admin URL:</span> https://{createdSite?.siteId}.entrynets.com/admin</p>
                     <p><span className="font-medium">Email:</span> {formData.email}</p>
                     <p className="text-sm text-gray-500 mt-2">Bookmark these links for easy access!</p>
                   </div>

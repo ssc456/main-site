@@ -334,12 +334,12 @@ export default function SitesList() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <a 
-                        href={`https://${site.siteId}.vercel.app`} 
+                        href={`https://${site.siteId}.entrynets.com`} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="text-blue-600 hover:text-blue-800"
                       >
-                        {site.siteId}.vercel.app
+                        {site.siteId}.entrynets.com
                       </a>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -367,7 +367,7 @@ export default function SitesList() {
                     <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
                       <div className="flex justify-center space-x-3">
                         <button
-                          onClick={() => copyToClipboard(`https://${site.siteId}.vercel.app`)}
+                          onClick={() => copyToClipboard(`https://${site.siteId}.entrynets.com`)}
                           className="text-gray-500 hover:text-gray-700"
                           title="Copy URL"
                         >
@@ -459,7 +459,7 @@ export default function SitesList() {
                 
                 <div>
                   <label htmlFor="siteId" className="block text-sm font-medium text-gray-700 mb-1">
-                    Site ID * <span className="text-xs text-gray-500">(URL will be https://[site-id].vercel.app)</span>
+                    Site ID * <span className="text-xs text-gray-500">(URL will be https://[site-id].entrynets.com)</span>
                   </label>
                   <input
                     type="text"

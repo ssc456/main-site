@@ -185,8 +185,8 @@ async function handleSiteStatus(req, res, siteId) {
       
       return res.status(200).json({ 
         status: 'ready',
-        url: `https://${siteId}.vercel.app`,
-        adminUrl: `https://${siteId}.vercel.app/admin`,
+        url: `https://${siteId}.entrynets.com`,
+        adminUrl: `https://${siteId}.entrynets.com/admin`,
         deployedAt: deployment.created
       });
     } else if (deployment.state === 'ERROR') {
