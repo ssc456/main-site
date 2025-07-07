@@ -102,7 +102,7 @@ export default function AdminDashboard() {
   }, [location]);
   
   // Save changes to Redis
-  const handleSave = async () => {
+   const handleSave = async () => {
     if (!clientData) return;
     
     setSaving(true);
@@ -110,7 +110,7 @@ export default function AdminDashboard() {
       // Get CSRF token from sessionStorage
       const csrfToken = sessionStorage.getItem('csrfToken');
       
-      const response = await fetch('/api/save-client-data', {
+      const response = await fetch('/api/client-data', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
