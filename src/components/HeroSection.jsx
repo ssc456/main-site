@@ -185,6 +185,7 @@ const scrollToNext = () => {
                 animate={isVisible ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.6, delay: 0.9 }}
               >
+                {/* Primary CTA - Get Started button to site creation page */}
                 <button
                   onClick={() => navigate('/create')}
                   className={`group px-8 py-4 ${colorClasses.button} text-white font-semibold rounded-full shadow-xl hover:shadow-2xl ${colorClasses.glow} transform hover:scale-105 transition-all duration-300 flex items-center space-x-2`}
@@ -193,13 +194,24 @@ const scrollToNext = () => {
                     initial={{ x: 0 }}
                     whileHover={{ x: 4 }}
                   >
-                    Create Your Site
+                    Get Started
                   </motion.span>
                   <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
                 </button>
                 
+                {/* Secondary CTA - Learn More scrolls to About section */}
                 <button
-                  onClick={scrollToNext}
+                  onClick={() => {
+                    const aboutSection = document.querySelector('#about');
+                    if (aboutSection) {
+                      const headerHeight = 80;
+                      const elementPosition = aboutSection.offsetTop - headerHeight;
+                      window.scrollTo({
+                        top: elementPosition,
+                        behavior: 'smooth'
+                      });
+                    }
+                  }}
                   className="px-8 py-4 backdrop-blur-sm bg-white/20 border border-white/50 text-white font-semibold rounded-full hover:bg-white/30 transition-all duration-300"
                 >
                   Learn More

@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { ChevronRight } from 'lucide-react';
 
 function AboutSection({ title, description, image, primaryColor, logoUrl }) {
   // Color mapping
@@ -106,8 +107,22 @@ function AboutSection({ title, description, image, primaryColor, logoUrl }) {
             />
             
             <motion.div variants={item} className="mt-10">
-              <button className={`px-6 py-3 rounded-lg font-medium bg-gradient-to-r ${colorClasses.gradient} text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all`}>
-                Learn More
+              <button
+                onClick={() => {
+                  const servicesSection = document.querySelector('#services');
+                  if (servicesSection) {
+                    const headerHeight = 80;
+                    const elementPosition = servicesSection.offsetTop - headerHeight;
+                    window.scrollTo({
+                      top: elementPosition,
+                      behavior: 'smooth'
+                    });
+                  }
+                }}
+                className={`inline-flex items-center gap-2 px-6 py-3 ${colorClasses.accent} text-white rounded-md transition-transform hover:translate-x-1`}
+              >
+                <span>Learn More</span>
+                <ChevronRight className="h-4 w-4" />
               </button>
             </motion.div>
           </motion.div>

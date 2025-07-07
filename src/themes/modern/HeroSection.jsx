@@ -73,26 +73,30 @@ function HeroSection({
             </p>
             
             <div className="flex flex-wrap gap-4">
+              {/* Primary CTA - Get Started button to site creation page */}
               <motion.button
-                onClick={() => {
-                  if (ctaLink.startsWith('#')) {
-                    const element = document.querySelector(ctaLink);
-                    if (element) {
-                      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                  } else if (ctaLink === '/create') {
-                    navigate('/create');
-                  }
-                }}
+                onClick={() => navigate('/create')}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.98 }}
                 className={`${colorClasses.button} px-8 py-4 rounded-lg font-medium flex items-center space-x-2`}
               >
-                <span>{ctaText || "Get Started"}</span>
+                <span>Get Started</span>
                 <ChevronRight size={20} />
               </motion.button>
               
+              {/* Secondary CTA - Learn More scrolls to About section */}
               <motion.button
+                onClick={() => {
+                  const aboutSection = document.querySelector('#about');
+                  if (aboutSection) {
+                    const headerHeight = 80;
+                    const elementPosition = aboutSection.offsetTop - headerHeight;
+                    window.scrollTo({
+                      top: elementPosition,
+                      behavior: 'smooth'
+                    });
+                  }
+                }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.98 }}
                 className="bg-white bg-opacity-10 backdrop-blur-sm border border-white border-opacity-20 text-white px-8 py-4 rounded-lg font-medium hover:bg-opacity-20 transition-all"
