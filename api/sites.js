@@ -152,6 +152,37 @@ async function handleSiteStatus(req, res, siteId) {
     const deployment = deploymentsResponse.data.deployments[0];
     
     if (deployment.state === 'READY') {
+      // Check if welcome email has been sent
+      const siteSettings = await redis.get(`site:${siteId}:settings`);
+      
+      // If we have email address and haven't sent welcome email yet
+      if (siteSettings?.adminEmail && !siteSettings.welcomeEmailSent) {
+        try {
+          console.log(`[Sites API] Sending welcome email for ${siteId}`);
+          const siteData = await redis.get(`site:${siteId}:client`);
+          
+          // Import the email function - make sure to add this import at the top of the file
+          const { sendWelcomeEmail } = await import('./create-site.js');
+          
+          // Send the welcome email
+          await sendWelcomeEmail(
+            siteSettings.adminEmail, 
+            siteId,
+            siteData?.siteTitle || siteId
+          );
+          
+          // Mark email as sent
+          await redis.set(`site:${siteId}:settings`, {
+            ...siteSettings,
+            welcomeEmailSent: true
+          });
+          
+          console.log(`[Sites API] Welcome email sent for ${siteId}`);
+        } catch (emailError) {
+          console.error(`[Sites API] Error sending welcome email for ${siteId}:`, emailError);
+        }
+      }
+      
       return res.status(200).json({ 
         status: 'ready',
         url: `https://${siteId}.vercel.app`,

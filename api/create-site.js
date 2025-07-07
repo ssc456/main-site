@@ -315,7 +315,7 @@ async function sendWelcomeEmail(userEmail, siteId, businessName) {
             <p>Great news! Your website for <strong>${businessName}</strong> has been successfully created and is now live.</p>
             
             <div style="margin: 30px 0; text-align: center;">
-              <a href="https://${siteId}.vercel.app" 
+              <a href="https://${siteId}.entrynets.com" 
                  style="background-color: #4F46E5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">
                 View Your Website
               </a>
@@ -323,8 +323,8 @@ async function sendWelcomeEmail(userEmail, siteId, businessName) {
             
             <h3>Important Links:</h3>
             <ul>
-              <li>Website URL: <a href="https://${siteId}.vercel.app">https://${siteId}.vercel.app</a></li>
-              <li>Admin Dashboard: <a href="https://${siteId}.vercel.app/admin">https://${siteId}.vercel.app/admin</a></li>
+              <li>Website URL: <a href="https://${siteId}.entrynets.com">https://${siteId}.entrynets.com</a></li>
+              <li>Admin Dashboard: <a href="https://${siteId}.entrynets.com/admin">https://${siteId}.entrynets.com/admin</a></li>
             </ul>
             
             <p>You can log in to your admin dashboard using the email and password you provided during signup.</p>
@@ -464,6 +464,20 @@ export default async function handler(req, res) {
     const projectId = createResp.data.id;
     console.log('[Vercel] Project created, id:', projectId);
 
+    /* ───── 2.5. Add custom domain to project ───── */
+    console.log('[Vercel] Adding custom domain to project...');
+    try {
+      await axios.post(
+        `https://api.vercel.com/v9/projects/${projectId}/domains`,
+        { name: `${siteId}.entrynets.com` },
+        { headers: vcHeaders }
+      );
+      console.log(`[Vercel] Custom domain ${siteId}.entrynets.com added successfully`);
+    } catch (domainError) {
+      console.error('[Vercel] Error adding custom domain:', domainError.response?.data || domainError);
+      // Continue with deployment even if custom domain fails
+    }
+
     /* ───── 3.  Env vars (v10) ───── */
     console.log('[Vercel] Adding environment variables...');
     const envVars = [
@@ -543,25 +557,12 @@ export default async function handler(req, res) {
       console.log('[Vercel] Updated project settings to disable auto-deployments');
     }
 
-    /* ───── 6.5. Send welcome email ───── */
-    if (email) {
-      console.log('[Email] Attempting to send welcome email to:', email);
-      try {
-        await sendWelcomeEmail(email, siteId, businessName);
-      } catch (emailError) {
-        console.error('[Email] Error in email process:', emailError);
-        // Continue anyway, we don't want to fail the whole process if email fails
-      }
-    } else {
-      console.log('[Email] No email address provided, skipping welcome email');
-    }
-
     /* ───── 7.  Response ───── */
     return res.status(201).json({
       success: true,
       siteId,
-      url: `https://${siteId}.vercel.app`,
-      adminUrl: `https://${siteId}.vercel.app/admin`,
+      url: `https://${siteId}.entrynets.com`,
+      adminUrl: `https://${siteId}.entrynets.com/admin`,
       generatedWithAI: !!generatedContent  // Flag to indicate if AI was used
     });
   } catch (err) {
