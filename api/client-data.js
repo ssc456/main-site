@@ -51,22 +51,33 @@ async function handleGetClientData(req, res) {
     return res.status(400).json({ error: 'Site ID is required' });
   }
   
-  // Only check auth for admin dashboard requests, not public site visitors
-  const isAdminRequest = req.headers.referer?.includes('/admin');
+  // Add debug logging to trace request details
+  console.log(`[ClientData API] GET request for site: ${siteId}`, {
+    referer: req.headers.referer || 'none',
+    hasCookies: !!req.cookies,
+    hasAdminToken: req.cookies?.adminToken ? 'yes' : 'no'
+  });
   
+  // Check if this is an admin request
+  const isAdminRequest = req.headers.referer?.includes('/admin');
+  console.log(`[ClientData API] Request type: ${isAdminRequest ? 'ADMIN' : 'PUBLIC'}`);
+  
+  // ONLY perform authorization checks for actual admin requests
   if (isAdminRequest) {
     // Extract token from cookie
     const cookies = req.cookies || {};
     const authToken = cookies.adminToken;
     
-    // Only do auth validation for admin requests
     if (!authToken) {
+      console.log('[ClientData API] Admin request missing auth token');
       return res.status(401).json({ error: 'Authentication required' });
     }
 
     // Validate token matches requested site
     try {
       const tokenSiteId = await redis.get(`auth:${authToken}`);
+      console.log(`[ClientData API] Token validation: ${tokenSiteId === siteId ? 'MATCH' : 'MISMATCH'}`);
+      
       if (!tokenSiteId || tokenSiteId !== siteId) {
         return res.status(403).json({ error: 'Not authorized to access this site' });
       }
@@ -82,6 +93,10 @@ async function handleGetClientData(req, res) {
       console.error('[ClientData API] Auth validation error:', authError);
       return res.status(500).json({ error: 'Auth validation failed' });
     }
+  }
+  else {
+    // This is a public request - skip all auth checks completely
+    console.log('[ClientData API] Public request - skipping auth checks');
   }
   
   // Continue with data fetching for both admin and public requests
