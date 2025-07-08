@@ -1,7 +1,7 @@
 // src/components/AboutSection.jsx
 import { LightBulbIcon } from '@heroicons/react/24/solid'
 import { motion } from 'framer-motion'
-import { ChevronRight } from '@heroicons/react/24/solid'
+import { ChevronRight } from 'lucide-react'
 
 function AboutSection({ title, description, primaryColor }) {
   return (
