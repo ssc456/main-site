@@ -25,13 +25,11 @@ export default function ImageUploader({
     formData.append('siteId', extractSiteId());
     
     try {
-      const token = localStorage.getItem('adminToken');
+      // Don't need to set Authorization header, the cookie will be sent automatically
       const response = await fetch('/api/upload-image', {
         method: 'POST',
         body: formData,
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        credentials: 'include' // Important to include cookies
       });
       
       if (!response.ok) {
