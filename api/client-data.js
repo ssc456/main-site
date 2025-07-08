@@ -46,21 +46,25 @@ export default async function handler(req, res) {
 
 // Get client data function (previously in get-client-data.js)
 async function handleGetClientData(req, res) {
-  // For admin requests, validate authentication
-  const requestPath = req.url;
-  const isAdminRequest = req.headers.referer?.includes('/admin/dashboard');
+  const { siteId } = req.query;
+  if (!siteId) {
+    return res.status(400).json({ error: 'Site ID is required' });
+  }
+  
+  // Only check auth for admin dashboard requests, not public site visitors
+  const isAdminRequest = req.headers.referer?.includes('/admin');
   
   if (isAdminRequest) {
     // Extract token from cookie
     const cookies = req.cookies || {};
     const authToken = cookies.adminToken;
-    const { siteId } = req.query;
     
+    // Only do auth validation for admin requests
     if (!authToken) {
       return res.status(401).json({ error: 'Authentication required' });
     }
 
-    // Additional security check - token must be for the requested site
+    // Validate token matches requested site
     try {
       const tokenSiteId = await redis.get(`auth:${authToken}`);
       if (!tokenSiteId || tokenSiteId !== siteId) {
@@ -79,16 +83,9 @@ async function handleGetClientData(req, res) {
       return res.status(500).json({ error: 'Auth validation failed' });
     }
   }
-
+  
+  // Continue with data fetching for both admin and public requests
   try {
-    // Get site ID from query param
-    const { siteId } = req.query;
-    
-    if (!siteId) {
-      return res.status(400).json({ error: 'Site ID is required' });
-    }
-    
-    // First try Redis if available
     if (redis) {
       try {
         const clientData = await redis.get(`site:${siteId}:client`);
