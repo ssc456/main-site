@@ -25,7 +25,6 @@ export default function ImageUploader({
     formData.append('siteId', extractSiteId());
     
     try {
-      // Don't need to set Authorization header, the cookie will be sent automatically
       const response = await fetch('/api/upload-image', {
         method: 'POST',
         body: formData,

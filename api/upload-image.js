@@ -43,7 +43,10 @@ export default async function handler(req, res) {
   if (!authToken || authToken === 'null') {
     const cookies = req.cookies || {};
     authToken = cookies.adminToken;
-    console.log('[Upload API] Using cookie authentication instead of header');
+    console.log('[Upload API] Using cookie authentication instead of header', { 
+      hasAdminToken: !!cookies.adminToken,
+      cookieKeys: Object.keys(cookies)
+    });
   }
 
   if (!authToken) {
@@ -53,11 +56,18 @@ export default async function handler(req, res) {
   try {
     // Check if token is valid
     const siteId = await redis.get(`auth:${authToken}`);
+    console.log('[Upload API] Token validation result:', { 
+      hasValidSiteId: !!siteId, 
+      siteId: siteId || 'null'
+    });
     
     if (!siteId) {
       return res.status(401).json({ error: 'Invalid or expired token' });
     }
     
+    // Skip CSRF check for file uploads as they're difficult to include in FormData
+    // and we're already using the HttpOnly cookie for authentication
+
     // Parse form data with more debug information
     const form = new IncomingForm({ 
       keepExtensions: true,
