@@ -9,6 +9,7 @@ import AdminDashboard from './admin/AdminDashboard';
 import CreateSite from './pages/CreateSite';
 import { extractSiteId } from './utils/siteId';
 import { initializePreviewDebugging, updatePreviewTitle } from './utils/previewHelpers';
+import { Analytics } from '@vercel/analytics/react';
 
 function App() {
   const [content, setContent] = useState(null);
@@ -187,6 +188,8 @@ function App() {
           </div>
         } />
       </Routes>
+      
+      <Analytics />
     </BrowserRouter>
   )
 }
