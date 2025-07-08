@@ -107,7 +107,21 @@ async function handleGetClientData(req, res) {
         
         if (clientData) {
           console.log('[ClientData API] Data found in Redis for site:', siteId);
-          return res.status(200).json(clientData);
+          // Add this check to prevent returning error structures as valid data
+          if (clientData.error) {
+            console.warn(`[ClientData API] Found error structure in Redis data: ${clientData.error}`);
+            // Don't return error data for public requests
+            if (!isAdminRequest) {
+              // For public requests, use the fallback or return a generic error
+              // Try fallback path below
+            } else {
+              // For admin requests, pass through the error
+              return res.status(403).json(clientData);
+            }
+          } else {
+            // Normal, valid client data
+            return res.status(200).json(clientData);
+          }
         }
       } catch (redisError) {
         console.error('[ClientData API] Redis error:', redisError);
