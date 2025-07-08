@@ -114,7 +114,42 @@ async function handleGetClientData(req, res) {
         if (clientData) {
           console.log('[ClientData API] Data found in Redis for site:', siteId);
           
-          // SPECIAL CASE: For entry-nets, clean up corrupt data
+          // RECOVERY FOR ENTRY-NETS: Check if data is incomplete (only has subscription fields)
+          if (siteId === 'entry-nets') {
+            // Check if this is severely incomplete data (missing critical fields)
+            if (clientData.subscriptionId && !clientData.siteTitle) {
+              console.log('[ClientData API] Detected incomplete entry-nets data, fetching template');
+              
+              // Get complete template data from the template site
+              try {
+                const templateData = await redis.get(`site:coastal-breeze:client`);
+                
+                if (templateData) {
+                  // Merge the template with the existing subscription data
+                  const recoveredData = {
+                    ...templateData,
+                    siteTitle: "Entry Nets",
+                    businessType: "Web Development Agency",
+                    // Keep the subscription info
+                    subscriptionId: clientData.subscriptionId,
+                    paymentTier: clientData.paymentTier,
+                    lastUpdated: clientData.lastUpdated
+                  };
+                  
+                  console.log('[ClientData API] Successfully recovered entry-nets data');
+                  
+                  // Optionally, save this recovered data back to Redis
+                  await redis.set(`site:${siteId}:client`, recoveredData);
+                  
+                  return res.status(200).json(recoveredData);
+                }
+              } catch (templateError) {
+                console.error('[ClientData API] Failed to recover data:', templateError);
+              }
+            }
+          }
+          
+          // Continue with existing SPECIAL CASE code...
           if (siteId === 'entry-nets' && clientData.error) {
             console.log('[ClientData API] Fixing corrupt entry-nets data');
             const { error, ...cleanData } = clientData;
