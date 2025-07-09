@@ -24,6 +24,13 @@ export default function CreateSite() {
   // Generated site info after creation
   const [createdSite, setCreatedSite] = useState(null);
 
+  // Add a new state for logo upload
+  const [logo, setLogo] = useState(null);
+  const [logoPreview, setLogoPreview] = useState('');
+
+  // Add state for progress indicator
+  const [progress, setProgress] = useState(0);
+
   // Handle form changes
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -103,6 +110,15 @@ export default function CreateSite() {
     setStep(step - 1);
   };
   
+  // Add a logo upload handler
+  const handleLogoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setLogo(file);
+      setLogoPreview(URL.createObjectURL(file));
+    }
+  };
+
   // Handle submit
   const handleSubmit = async () => {
     // First, actively blur any focused element to dismiss mobile keyboard
@@ -117,6 +133,26 @@ export default function CreateSite() {
     
     setIsSubmitting(true);
     try {
+      // First, upload the logo if one was selected
+      let logoUrl = '';
+      
+      if (logo) {
+        const formData = new FormData();
+        formData.append('file', logo);
+        formData.append('siteId', formData.siteId);
+        
+        const logoResponse = await fetch('/api/upload-logo', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (logoResponse.ok) {
+          const logoData = await logoResponse.json();
+          logoUrl = logoData.url;
+        }
+      }
+      
+      // Now proceed with site creation, including the logo URL
       const response = await fetch('/api/create-site', {
         method: 'POST',
         headers: {
@@ -130,7 +166,8 @@ export default function CreateSite() {
           siteId: formData.siteId,
           email: formData.email,
           password: formData.password,
-          includeAppointments: formData.includeAppointments || false
+          includeAppointments: formData.includeAppointments || false,
+          logoUrl: logoUrl // Include the uploaded logo URL
         })
       });
       
@@ -174,6 +211,15 @@ export default function CreateSite() {
     console.log(`Starting build status polling for site: ${siteId}`);
     setBuildStatus('building');
     
+    // Start progress animation
+    setProgress(0);
+    let progressInterval = setInterval(() => {
+      setProgress(current => {
+        // Cap at 95% - the final 5% happens when build is complete
+        return Math.min(current + 1, 95);
+      });
+    }, 1200); // Takes ~2 minutes to reach 95%
+    
     const checkStatus = async () => {
       try {
         console.log(`Making status check request for: ${siteId}`);
@@ -185,6 +231,8 @@ export default function CreateSite() {
         console.log("Status data:", data);
         
         if (data.status === 'ready') {
+          clearInterval(progressInterval);
+          setProgress(100);
           setBuildStatus('ready');
           return true;
         }
@@ -199,19 +247,23 @@ export default function CreateSite() {
     // Check immediately first
     const isReady = await checkStatus();
     if (!isReady) {
-      // If not ready, set up interval to check every 10 seconds
+      // Poll every 10 seconds
       const interval = setInterval(async () => {
         const ready = await checkStatus();
         if (ready) {
           clearInterval(interval);
+          clearInterval(progressInterval);
+          setProgress(100);
         }
       }, 10000);
       
-      // Clean up interval after 5 minutes as failsafe
+      // Failsafe - clear interval after 5 minutes
       setTimeout(() => {
         clearInterval(interval);
+        clearInterval(progressInterval);
         if (buildStatus === 'building') {
           setBuildStatus('unknown');
+          setProgress(99); // Show nearly complete
         }
       }, 5 * 60 * 1000);
     }
@@ -320,6 +372,39 @@ export default function CreateSite() {
                   <p className="mt-1 text-sm text-gray-500">
                     Allow customers to book appointments on your website
                   </p>
+                </div>
+                
+                {/* Add this to Step 1 form */}
+                <div className="mt-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Logo (Optional)
+                  </label>
+                  <div className="flex items-center space-x-4">
+                    <div className="relative">
+                      <input
+                        type="file"
+                        id="logo"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        className="sr-only"
+                      />
+                      <label
+                        htmlFor="logo"
+                        className="cursor-pointer px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                      >
+                        Choose File
+                      </label>
+                    </div>
+                    {logoPreview && (
+                      <div className="h-12 w-12 overflow-hidden rounded-md">
+                        <img 
+                          src={logoPreview} 
+                          alt="Logo preview" 
+                          className="h-full w-full object-contain"
+                        />
+                      </div>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -439,7 +524,20 @@ export default function CreateSite() {
                       <div className="animate-spin rounded-full h-6 w-6 border-4 border-blue-500 border-t-transparent"></div>
                       <p className="text-lg text-gray-600">Building your website...</p>
                     </div>
-                    <p className="text-gray-500">This typically takes 2-3 minutes.</p>
+                    
+                    {/* Progress bar */}
+                    <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+                      <div 
+                        className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-out"
+                        style={{ width: `${progress}%` }}
+                      ></div>
+                    </div>
+                    
+                    <p className="text-gray-500 text-center">
+                      {progress < 30 ? 'Setting up your site...' : 
+                       progress < 60 ? 'Configuring your website...' :
+                       progress < 90 ? 'Almost ready...' : 'Finalizing...'}
+                    </p>
                   </div>
                 )}
                 
