@@ -31,6 +31,9 @@ export default function CreateSite() {
   // Add state for progress indicator
   const [progress, setProgress] = useState(0);
 
+  // Add a new state for the countdown
+  const [countdown, setCountdown] = useState(0);
+
   // Handle form changes
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -131,24 +134,44 @@ export default function CreateSite() {
     
     if (!validateCurrentStep()) return;
     
+    // Start countdown from 10
+    setCountdown(10);
+    
+    // Create countdown interval
+    const countdownInterval = setInterval(() => {
+      setCountdown(prevCount => {
+        if (prevCount <= 1) {
+          clearInterval(countdownInterval);
+          // Actually submit the form
+          submitForm();
+          return 0;
+        }
+        return prevCount - 1;
+      });
+    }, 1000);
+  };
+
+  // Move the actual form submission to a separate function
+  const submitForm = async () => {
     setIsSubmitting(true);
     try {
       // First, upload the logo if one was selected
       let logoUrl = '';
       
       if (logo) {
-        const formData = new FormData();
-        formData.append('file', logo);
-        formData.append('siteId', formData.siteId);
+        const uploadFormData = new FormData(); // Renamed for clarity
+        uploadFormData.append('file', logo);
+        uploadFormData.append('siteId', formData.siteId); // Use state variable, not the FormData object
         
         const logoResponse = await fetch('/api/upload-logo', {
           method: 'POST',
-          body: formData,
+          body: uploadFormData,
         });
         
         if (logoResponse.ok) {
           const logoData = await logoResponse.json();
           logoUrl = logoData.url;
+          console.log("Logo uploaded successfully:", logoUrl);
         }
       }
       
@@ -626,7 +649,7 @@ export default function CreateSite() {
                 ) : (
                   <button
                     onClick={handleSubmit}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || countdown > 0}
                     className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-70 flex items-center"
                   >
                     {isSubmitting ? (
@@ -634,8 +657,12 @@ export default function CreateSite() {
                         <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
                         Creating...
                       </>
+                    ) : countdown > 0 ? (
+                      <>
+                        Creating in {countdown}s...
+                      </>
                     ) : (
-                      'Create Website'
+                      "Create Website"
                     )}
                   </button>
                 )}

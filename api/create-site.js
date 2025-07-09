@@ -408,6 +408,12 @@ export default async function handler(req, res) {
       siteData.siteTitle = businessName;
       if (businessType) siteData.businessType = businessType;
       
+      // IMPORTANT: Use the uploaded logo URL if provided
+      if (req.body.logoUrl) {
+        console.log('[CreateSite] Using uploaded logo:', req.body.logoUrl);
+        siteData.logoUrl = req.body.logoUrl;
+      }
+      
       // Set appointment flag if requested
       if (siteData.config) {
         siteData.config.showAppointments = includeAppointments || false;
