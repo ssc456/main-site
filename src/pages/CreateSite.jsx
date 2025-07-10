@@ -133,35 +133,31 @@ export default function CreateSite() {
     await new Promise(resolve => setTimeout(resolve, 50));
     
     if (!validateCurrentStep()) return;
+
+    // Start the submission process immediately
+    setIsSubmitting(true);
     
-    // Start countdown from 10
-    setCountdown(10);
-    
-    // Create countdown interval
+    // Start a countdown just for visual feedback
+    setCountdown(20);
     const countdownInterval = setInterval(() => {
       setCountdown(prevCount => {
         if (prevCount <= 1) {
           clearInterval(countdownInterval);
-          // Actually submit the form
-          submitForm();
           return 0;
         }
         return prevCount - 1;
       });
     }, 1000);
-  };
-
-  // Move the actual form submission to a separate function
-  const submitForm = async () => {
-    setIsSubmitting(true);
+    
+    // Execute the form submission right away
     try {
       // First, upload the logo if one was selected
       let logoUrl = '';
       
       if (logo) {
-        const uploadFormData = new FormData(); // Renamed for clarity
+        const uploadFormData = new FormData();
         uploadFormData.append('file', logo);
-        uploadFormData.append('siteId', formData.siteId); // Use state variable, not the FormData object
+        uploadFormData.append('siteId', formData.siteId);
         
         const logoResponse = await fetch('/api/upload-logo', {
           method: 'POST',
@@ -194,13 +190,14 @@ export default function CreateSite() {
         })
       });
       
+      // Rest of your existing error handling
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'An error occurred');
       }
       
       const data = await response.json();
-      console.log("API response:", data); // Add this logging
+      console.log("API response:", data);
 
       if (!data || !data.siteId) {
         console.error("Invalid API response - missing siteId:", data);
@@ -219,6 +216,8 @@ export default function CreateSite() {
       console.error('Form submission error:', err);
       setError(err.message || 'Failed to create site');
     } finally {
+      // Clear countdown if still running
+      clearInterval(countdownInterval);
       setIsSubmitting(false);
     }
   };
