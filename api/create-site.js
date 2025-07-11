@@ -502,13 +502,13 @@ export default async function handler(req, res) {
     });
     console.log('[Redis] Stored site data for', siteId);
 
-    // Trigger a build on GitHub
-    try {
-      await triggerBuildWithGitCommit(siteId);
-    } catch (buildError) {
-      console.error('[CreateSite] Failed to trigger build:', buildError);
-      // Continue anyway - don't block site creation
-    }
+    // // Trigger a build on GitHub
+    // try {
+    //   await triggerBuildWithGitCommit(siteId);
+    // } catch (buildError) {
+    //   console.error('[CreateSite] Failed to trigger build:', buildError);
+    //   // Continue anyway - don't block site creation
+    // }
 
     // Send admin notification email (non-blocking)
     sendAdminNotificationEmail(siteId, businessName, email).catch(err => {
