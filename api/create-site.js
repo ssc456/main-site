@@ -410,6 +410,9 @@ async function sendAdminNotificationEmail(siteId, businessName, userEmail) {
   }
 }
 
+/* ───────── Exports ───────── */
+export { sendWelcomeEmail };
+
 /* ───────── HTTP handler ───────── */
 export default async function handler(req, res) {
   /* CORS + verb guard */
