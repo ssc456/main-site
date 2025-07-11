@@ -358,6 +358,58 @@ async function sendWelcomeEmail(userEmail, siteId, businessName) {
   }
 }
 
+/* ───────── Admin notification function ───────── */
+async function sendAdminNotificationEmail(siteId, businessName, userEmail) {
+  if (!resend) {
+    console.warn('[Email] Resend client not available, skipping admin notification email');
+    return false;
+  }
+  
+  try {
+    const fromEmail = process.env.EMAIL_FROM || 'notifications@entrynets.com';
+    console.log(`[Email] Sending admin notification email to Scott.catterall@outlook.com`);
+    
+    const { data, error } = await resend.emails.send({
+      from: fromEmail,
+      to: 'Scott.catterall@outlook.com',
+      subject: `New Site Created: ${businessName}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: #4F46E5; padding: 20px; text-align: center;">
+            <h1 style="color: white; margin: 0;">New Site Created</h1>
+          </div>
+          
+          <div style="padding: 20px; background-color: #f9fafb; border-bottom: 1px solid #e5e7eb;">
+            <h2>New Site Details:</h2>
+            <ul>
+              <li><strong>Business Name:</strong> ${businessName}</li>
+              <li><strong>Site ID:</strong> ${siteId}</li>
+              <li><strong>User Email:</strong> ${userEmail}</li>
+              <li><strong>Site URL:</strong> <a href="https://${siteId}.entrynets.com">https://${siteId}.entrynets.com</a></li>
+              <li><strong>Admin URL:</strong> <a href="https://${siteId}.entrynets.com/admin">https://${siteId}.entrynets.com/admin</a></li>
+            </ul>
+          </div>
+          
+          <div style="padding: 20px; text-align: center; color: #6b7280; font-size: 14px;">
+            <p>This is an automated notification from your BizBud platform.</p>
+          </div>
+        </div>
+      `
+    });
+    
+    if (error) {
+      console.error('[Email] Error sending admin notification email:', error);
+      return false;
+    }
+    
+    console.log('[Email] Admin notification email sent successfully:', data?.id);
+    return true;
+  } catch (error) {
+    console.error('[Email] Exception sending admin notification email:', error);
+    return false;
+  }
+}
+
 /* ───────── HTTP handler ───────── */
 export default async function handler(req, res) {
   /* CORS + verb guard */
@@ -443,11 +495,24 @@ export default async function handler(req, res) {
     await redis.set(`site:${siteId}:settings`, {
       adminPasswordHash: pwdHash,
       adminEmail: email,
-      createdAt: new Date().toISOString(),
-      businessType
+      createdAt: new Date().toISOString()
     });
     console.log('[Redis] Stored site data for', siteId);
 
+    // Trigger a build on GitHub
+    try {
+      await triggerBuildWithGitCommit(siteId);
+    } catch (buildError) {
+      console.error('[CreateSite] Failed to trigger build:', buildError);
+      // Continue anyway - don't block site creation
+    }
+
+    // Send admin notification email (non-blocking)
+    sendAdminNotificationEmail(siteId, businessName, email).catch(err => {
+      console.error('[CreateSite] Admin notification email error:', err);
+      // Non-blocking - we don't await this promise
+    });
+    
     /* ───── 2.  Vercel project creation (v9) ───── */
     const vercelToken = process.env.VERCEL_API_TOKEN;
     if (!vercelToken) throw new Error('Missing Vercel token');
