@@ -22,6 +22,13 @@ export default function SitesList() {
     password: '',
   });
   
+  // Add this to your existing state variables
+  const [showTierModal, setShowTierModal] = useState(false);
+  const [siteToUpdate, setSiteToUpdate] = useState(null);
+  const [targetTier, setTargetTier] = useState('');
+  const [confirmTierText, setConfirmTierText] = useState('');
+  const [updatingTier, setUpdatingTier] = useState(false);
+  
   useEffect(() => {
     fetchSites();
   }, []);
@@ -207,16 +214,30 @@ export default function SitesList() {
     }
   };
   
-  // Add this to the SitesList component
-  const togglePaymentTier = async (siteId, currentTier) => {
-    if (!confirm(`Are you sure you want to change the payment tier for ${siteId}?`)) {
+  // Replace the current togglePaymentTier function with this
+  const openTierUpdateModal = (site) => {
+    const newTier = site.paymentTier === 'PREMIUM' ? 'FREE' : 'PREMIUM';
+    setSiteToUpdate(site);
+    setTargetTier(newTier);
+    setConfirmTierText('');
+    setShowTierModal(true);
+  };
+
+  const closeTierModal = () => {
+    setShowTierModal(false);
+    setSiteToUpdate(null);
+    setConfirmTierText('');
+  };
+
+  const handleTierUpdate = async () => {
+    if (confirmTierText !== targetTier) {
+      toast.error(`Please type "${targetTier}" to confirm`);
       return;
     }
     
     try {
+      setUpdatingTier(true);
       const csrfToken = sessionStorage.getItem('csrfToken');
-      
-      const newTier = currentTier === 'PREMIUM' ? 'FREE' : 'PREMIUM';
       
       const response = await fetch('/api/update-payment-tier', {
         method: 'POST',
@@ -225,18 +246,24 @@ export default function SitesList() {
           'X-CSRF-Token': csrfToken || ''
         },
         credentials: 'include',
-        body: JSON.stringify({ siteId, paymentTier: newTier })
+        body: JSON.stringify({ 
+          siteId: siteToUpdate.siteId, 
+          paymentTier: targetTier 
+        })
       });
       
       if (!response.ok) {
         throw new Error('Failed to update payment tier');
       }
       
-      toast.success(`Site ${siteId} payment tier changed to ${newTier}`);
+      toast.success(`Site ${siteToUpdate.siteId} payment tier changed to ${targetTier}`);
       fetchSites(); // Refresh the site list
+      closeTierModal();
     } catch (error) {
       console.error('Error updating payment tier:', error);
       toast.error(error.message);
+    } finally {
+      setUpdatingTier(false);
     }
   };
   
@@ -345,21 +372,26 @@ export default function SitesList() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <span 
-                          className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          className={`px-2 py-1 text-xs font-medium rounded-full flex items-center ${
                             site.paymentTier === 'PREMIUM' 
                               ? 'bg-green-100 text-green-800' 
                               : 'bg-yellow-100 text-yellow-800'
                           }`}
                         >
+                          {site.paymentTier === 'PREMIUM' && (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                          )}
                           {site.paymentTier || 'FREE'}
                         </span>
                         <button
-                          onClick={() => togglePaymentTier(site.siteId, site.paymentTier || 'FREE')}
+                          onClick={() => openTierUpdateModal(site)}
                           className="ml-2 text-gray-500 hover:text-gray-700"
-                          title="Toggle payment tier"
+                          title={`Change to ${site.paymentTier === 'PREMIUM' ? 'FREE' : 'PREMIUM'}`}
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                           </svg>
                         </button>
                       </div>
@@ -379,9 +411,12 @@ export default function SitesList() {
                         {/* Delete Button - Only show for non-protected sites */}
                         {site.siteId !== 'entry-nets' && site.siteId !== 'coastal-breeze' && (
                           <button
-                            onClick={() => openDeleteConfirmation(site)}
-                            className="text-red-500 hover:text-red-700"
-                            title="Delete Site"
+                            onClick={() => site.paymentTier !== 'PREMIUM' && openDeleteConfirmation(site)}
+                            className={`text-red-500 hover:text-red-700 ${
+                              site.paymentTier === 'PREMIUM' ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                            title={site.paymentTier === 'PREMIUM' ? 'Premium sites cannot be deleted' : 'Delete Site'}
+                            disabled={site.paymentTier === 'PREMIUM'}
                           >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                               <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -559,6 +594,80 @@ export default function SitesList() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      
+      {/* Payment Tier Update Modal */}
+      {showTierModal && siteToUpdate && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Update Payment Tier</h3>
+            
+            <p className="mb-4 text-gray-600">
+              Site <span className="font-semibold">{siteToUpdate.siteId}</span> is currently on the <span className="font-semibold">{siteToUpdate.paymentTier} tier</span>.
+            </p>
+            
+            {/* Add contextual warning information in the payment tier modal */}
+            {targetTier === 'PREMIUM' && (
+              <div className="p-3 bg-yellow-50 rounded-md text-yellow-800 mb-4 text-sm">
+                <p className="font-medium">This will:</p>
+                <ul className="list-disc ml-5 mt-1">
+                  <li>Remove the premium banner from the site</li>
+                  <li>Enable all premium features</li>
+                  <li>Prevent site deletion (for active customers)</li>
+                </ul>
+              </div>
+            )}
+
+            {targetTier === 'FREE' && (
+              <div className="p-3 bg-yellow-50 rounded-md text-yellow-800 mb-4 text-sm">
+                <p className="font-medium">Warning:</p>
+                <ul className="list-disc ml-5 mt-1">
+                  <li>The premium banner will appear on the site</li>
+                  <li>Premium features will be disabled</li>
+                  <li>This may affect paying customers!</li>
+                </ul>
+              </div>
+            )}
+            
+            <div className="mb-4">
+              <label htmlFor="confirmTierText" className="block text-sm font-medium text-gray-700 mb-1">
+                Confirm by typing <span className="font-semibold">{targetTier}</span>
+              </label>
+              <input
+                type="text"
+                id="confirmTierText"
+                value={confirmTierText}
+                onChange={(e) => setConfirmTierText(e.target.value)}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder={targetTier}
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={closeTierModal}
+                disabled={updatingTier}
+                className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleTierUpdate}
+                disabled={updatingTier}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 flex items-center"
+              >
+                {updatingTier ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                    Updating...
+                  </>
+                ) : (
+                  'Update Tier'
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

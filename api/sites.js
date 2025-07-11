@@ -116,7 +116,8 @@ export default async function handler(req, res) {
             businessType: clientData.businessType || '',
             email: settings.adminEmail || '',
             createdAt: settings.createdAt || '',
-            lastUpdated: clientData.lastUpdated || settings.createdAt || ''
+            lastUpdated: clientData.lastUpdated || settings.createdAt || '',
+            paymentTier: clientData.paymentTier || 'FREE' // Add this line
           };
         } catch (err) {
           console.error(`[Sites API] Error fetching data for site ${siteId}:`, err);
