@@ -367,11 +367,11 @@ async function sendAdminNotificationEmail(siteId, businessName, userEmail) {
   
   try {
     const fromEmail = process.env.EMAIL_FROM || 'notifications@entrynets.com';
-    console.log(`[Email] Sending admin notification email to Scott.catterall@outlook.com`);
+    console.log(`[Email] Sending admin notification email to sales@entrynets.com`);
     
     const { data, error } = await resend.emails.send({
       from: fromEmail,
-      to: 'Scott.catterall@outlook.com',
+      to: 'sales@entrynets.com',
       subject: `New Site Created: ${businessName}`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
