@@ -22,27 +22,85 @@ function App() {
     initializePreviewDebugging();
   }, []);
 
+  // Function to update meta tags dynamically
+  const updateMetaTags = (clientData) => {
+    if (!clientData) return;
+    
+    const siteTitle = clientData.siteTitle || 'EntryNets Website';
+    const description = clientData.about?.description || clientData.hero?.subheadline || 'Professional business website powered by EntryNets';
+    const logoUrl = clientData.logoUrl || '';
+    const siteUrl = window.location.href;
+    
+    // Clean description
+    const cleanDescription = description
+      .replace(/<[^>]*>/g, '')
+      .replace(/\n/g, ' ')
+      .trim()
+      .substring(0, 160);
+    
+    // Update document title
+    document.title = siteTitle;
+    
+    // Update or create meta tags
+    const updateOrCreateMeta = (property, content, isOG = false) => {
+      if (!content) return;
+      
+      const selector = isOG ? `meta[property="${property}"]` : `meta[name="${property}"]`;
+      let meta = document.querySelector(selector);
+      
+      if (!meta) {
+        meta = document.createElement('meta');
+        if (isOG) {
+          meta.setAttribute('property', property);
+        } else {
+          meta.setAttribute('name', property);
+        }
+        document.head.appendChild(meta);
+      }
+      meta.setAttribute('content', content);
+    };
+    
+    // Standard meta tags
+    updateOrCreateMeta('description', cleanDescription);
+    updateOrCreateMeta('title', siteTitle);
+    
+    // Open Graph tags
+    updateOrCreateMeta('og:title', siteTitle, true);
+    updateOrCreateMeta('og:description', cleanDescription, true);
+    updateOrCreateMeta('og:url', siteUrl, true);
+    updateOrCreateMeta('og:site_name', siteTitle, true);
+    updateOrCreateMeta('og:type', 'website', true);
+    if (logoUrl) {
+      updateOrCreateMeta('og:image', logoUrl, true);
+      updateOrCreateMeta('og:image:width', '1200', true);
+      updateOrCreateMeta('og:image:height', '630', true);
+    }
+    
+    // Twitter tags
+    updateOrCreateMeta('twitter:card', logoUrl ? 'summary_large_image' : 'summary', true);
+    updateOrCreateMeta('twitter:title', siteTitle, true);
+    updateOrCreateMeta('twitter:description', cleanDescription, true);
+    updateOrCreateMeta('twitter:url', siteUrl, true);
+    if (logoUrl) {
+      updateOrCreateMeta('twitter:image', logoUrl, true);
+    }
+    
+    // LinkedIn tags
+    updateOrCreateMeta('linkedin:title', siteTitle, true);
+    updateOrCreateMeta('linkedin:description', cleanDescription, true);
+    if (logoUrl) {
+      updateOrCreateMeta('linkedin:image', logoUrl, true);
+    }
+  };
+
   useEffect(() => {
     // Check if we're in preview mode
-    const urlParams = new URLSearchParams(window.location.search);
-    const previewMode = urlParams.get('preview') === 'true';
+    const previewMode = window.location.search.includes('preview=true');
     setIsPreview(previewMode);
     
     if (previewMode) {
       console.log('[App] Running in preview mode');
-      
-      // Initialize with default configuration to avoid null rendering issues
-      setConfig({
-        primaryColor: 'blue',
-        showHero: true,
-        showAbout: true,
-        showServices: true,
-        showFeatures: true,
-        showTestimonials: true,
-        showGallery: true,
-        showContact: true,
-        showFAQ: true
-      });
+      setLoading(false);
       
       // Function to notify parent that the preview is ready
       const notifyReady = () => {
@@ -69,10 +127,8 @@ function App() {
             setConfig({...newData.config});
           }
           
-          // Update document title
-          if (newData.siteTitle) {
-            document.title = newData.siteTitle;
-          }
+          // Update meta tags and document title
+          updateMetaTags(newData);
           
           setLoading(false);
           console.log('[App] Preview content updated successfully');
@@ -113,9 +169,8 @@ function App() {
         }
         setLoading(false);
         
-        if (data.siteTitle) {
-          document.title = data.siteTitle;
-        }
+        // Update meta tags with loaded content
+        updateMetaTags(data);
       })
       .catch(error => {
         console.warn('API data fetch failed, falling back to local file:', error);
@@ -129,9 +184,8 @@ function App() {
             }
             setLoading(false);
             
-            if (client.siteTitle) {
-              document.title = client.siteTitle;
-            }
+            // Update meta tags with fallback content
+            updateMetaTags(client);
           })
           .catch(err => {
             console.error('Failed to load content:', err);
