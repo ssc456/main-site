@@ -158,8 +158,9 @@ export default function CreateSite() {
         const uploadFormData = new FormData();
         uploadFormData.append('file', logo);
         uploadFormData.append('siteId', formData.siteId);
+        uploadFormData.append('type', 'logo'); // Specify this is a logo upload
         
-        const logoResponse = await fetch('/api/upload-logo', {
+        const logoResponse = await fetch('/api/upload', {
           method: 'POST',
           body: uploadFormData,
         });

@@ -23,9 +23,10 @@ export default function ImageUploader({
     const formData = new FormData();
     formData.append('file', file);
     formData.append('siteId', extractSiteId());
+    formData.append('type', 'image'); // Specify this is a regular image upload
     
     try {
-      const response = await fetch('/api/upload-image', {
+      const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
         credentials: 'include' // Important to include cookies

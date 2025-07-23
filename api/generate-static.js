@@ -135,7 +135,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ 
       success: true, 
       message: 'Static HTML generated successfully',
-      previewUrl: `/api/social-preview?siteId=${siteId}`
+      previewUrl: `/api/social?siteId=${siteId}&action=preview`
     });
 
   } catch (error) {

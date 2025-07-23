@@ -5,14 +5,16 @@ LinkedIn (and other social media platforms) can't see your website content becau
 
 ## Solutions Implemented
 
-### 1. **API Endpoint for Meta Tags** (`/api/meta-tags.js`)
-- Generates proper meta tag data from Redis content
-- Can be used by other services or for debugging
-
-### 2. **Social Media Bot Detection** (`/api/social-preview.js`)
-- Detects social media bots and serves pre-rendered HTML
+### 1. **Consolidated Social API** (`/api/social.js`)
+- Single endpoint that handles both meta tag generation and social preview HTML
+- Detects social media bots and serves pre-rendered HTML with proper meta tags
+- Supports query parameters: `?action=meta` for JSON data, `?action=preview` for HTML
 - Includes all necessary Open Graph, Twitter, and LinkedIn meta tags
-- Regular users get redirected to the main site
+
+### 2. **Unified Upload API** (`/api/upload.js`)
+- Single endpoint that handles both logo and image uploads
+- Uses `type` parameter to distinguish between uploads: `type=logo` or `type=image`
+- Integrates with Cloudinary and Redis media library
 
 ### 3. **Vercel Middleware** (`middleware.js`)
 - Edge function that intercepts requests from social bots
