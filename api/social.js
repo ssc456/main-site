@@ -44,15 +44,26 @@ export default async function handler(req, res) {
     // Get site data from Redis
     const clientData = await redis.get(`site:${siteId}:client`);
     
-    if (!clientData) {
-      return res.status(404).json({ error: 'Site not found' });
+    // Handle main EntryNets domain case
+    let siteTitle, rawDescription, logoUrl, siteUrl;
+    
+    if (siteId === 'entry-nets' || siteId === 'entrynets') {
+      // Main EntryNets site data with fallbacks
+      siteTitle = clientData?.siteTitle || 'EntryNets - Professional Website Builder';
+      rawDescription = clientData?.about?.description || clientData?.hero?.subheadline || 'Professional business websites powered by EntryNets. Create stunning websites for your business with our easy-to-use platform.';
+      logoUrl = clientData?.logoUrl || 'https://entrynets.com/images/entrynets-logo-social.png';
+      siteUrl = 'https://entrynets.com';
+    } else {
+      // Subdomain sites
+      if (!clientData) {
+        return res.status(404).json({ error: 'Site not found' });
+      }
+      
+      siteTitle = clientData.siteTitle || 'EntryNets Website';
+      rawDescription = clientData.about?.description || clientData.hero?.subheadline || 'Professional business website powered by EntryNets';
+      logoUrl = clientData.logoUrl || 'https://entrynets.com/images/entrynets-logo-social.png';
+      siteUrl = `https://${siteId}.entrynets.com`;
     }
-
-    // Extract meta information
-    const siteTitle = clientData.siteTitle || 'EntryNets Website';
-    const rawDescription = clientData.about?.description || clientData.hero?.subheadline || 'Professional business website powered by EntryNets';
-    const logoUrl = clientData.logoUrl || 'https://entrynets.com/images/entrynets-logo-social.png';
-    const siteUrl = `https://${siteId}.entrynets.com`;
     
     // Clean description for meta tags
     const description = rawDescription
@@ -148,6 +159,13 @@ export default async function handler(req, res) {
       return new Response(html, {
         headers: { 'Content-Type': 'text/html' },
       });
+    }
+
+    // Handle image action
+    if (action === 'image') {
+      // Redirect to or serve an actual image file
+      res.setHeader('Location', '/social-preview.png');
+      return res.status(302).end();
     }
 
     // Default JSON response
