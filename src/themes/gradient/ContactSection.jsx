@@ -1,13 +1,15 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 import { Mail, Phone, MapPin, Send, MessageCircle } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 
-function ContactSection({ title, description, contact, primaryColor }) {
+function ContactSection({ title, description, email, phone, address, primaryColor }) {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     message: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Bold gradient color mapping
   const colorClasses = {
@@ -68,16 +70,70 @@ function ContactSection({ title, description, contact, primaryColor }) {
     border: 'border-gray-400/30'
   };
 
-  const contactInfo = contact || {
-    email: 'hello@example.com',
-    phone: '+1 (555) 123-4567',
-    address: '123 Business Street, City, State 12345'
+  const contactInfo = {
+    email: email || 'hello@example.com',
+    phone: phone || '+1 (555) 123-4567',
+    address: address || '123 Business Street, City, State 12345'
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission
-    console.log('Form submitted:', formData);
+    
+    // Basic validation
+    if (!formData.name.trim()) {
+      toast.error('Please enter your name');
+      return;
+    }
+    if (!formData.email.trim() || !formData.email.includes('@')) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    if (!formData.message.trim()) {
+      toast.error('Please enter your message');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Get the site ID from the URL (e.g., example.entrynets.com -> example)
+      const hostname = window.location.hostname;
+      let siteId = hostname.split('.')[0];
+      
+      // If on localhost or development, use a default
+      if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('localhost')) {
+        siteId = import.meta.env.VITE_SITE_ID || 'demo';
+      }
+      
+      // Ensure we have a siteId
+      if (!siteId) {
+        throw new Error('Unable to determine site ID');
+      }
+      
+      console.log('Sending to siteId:', siteId); // Debug log
+      
+      const response = await fetch(`/api/contact?siteId=${siteId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send message');
+      }
+      
+      // Success
+      toast.success('Message sent successfully!');
+      setFormData({ name: '', email: '', message: '' });
+      
+    } catch (error) {
+      toast.error(error.message || 'Failed to send message. Please try again.');
+      console.error('Contact form error:', error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -291,12 +347,24 @@ function ContactSection({ title, description, contact, primaryColor }) {
                   >
                     <motion.button
                       type="submit"
-                      className={`w-full px-8 py-4 ${colorClasses.accent} text-white font-semibold rounded-xl text-lg ${colorClasses.glow} shadow-xl hover:scale-105 transition-all duration-300 flex items-center justify-center gap-3`}
+                      disabled={isSubmitting}
+                      className={`w-full px-8 py-4 ${colorClasses.accent} text-white font-semibold rounded-xl text-lg ${colorClasses.glow} shadow-xl hover:scale-105 transition-all duration-300 flex items-center justify-center gap-3 ${
+                        isSubmitting ? 'opacity-70 cursor-not-allowed' : ''
+                      }`}
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
-                      <Send className="w-5 h-5" />
-                      Send Message
+                      {isSubmitting ? (
+                        <>
+                          <div className="h-5 w-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-5 h-5" />
+                          Send Message
+                        </>
+                      )}
                     </motion.button>
                   </motion.div>
                 </form>

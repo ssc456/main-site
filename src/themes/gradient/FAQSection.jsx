@@ -250,6 +250,12 @@ function FAQSection({ title, description, faqs, primaryColor }) {
                 Can't find the answer you're looking for? Our team is here to help. Get in touch and we'll get back to you as soon as possible.
               </p>
               <motion.button
+                onClick={() => {
+                  const contactSection = document.getElementById('contact');
+                  if (contactSection) {
+                    contactSection.scrollIntoView({ behavior: 'smooth' });
+                  }
+                }}
                 className={`px-12 py-4 ${colorClasses.accent} text-white font-semibold rounded-full text-lg ${colorClasses.glow} shadow-xl hover:scale-105 transition-all duration-300`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}

@@ -1,9 +1,6 @@
 import { motion } from 'framer-motion';
 import { useState } from 'react';
-import { ChevronLeft, Chevr              {/* Testimonial Text */}
-              <blockquote className="text-2xl md:text-3xl font-light text-gray-800 leading-relaxed mb-12 italic">
-                "{quotes[currentIndex].quote}"
-              </blockquote>ght, Quote } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Quote } from 'lucide-react';
 
 function TestimonialsSection({ title, quotes, primaryColor }) {
   const [currentIndex, setCurrentIndex] = useState(0);
