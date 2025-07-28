@@ -22,8 +22,22 @@ function FeaturesSection({ title, items, primaryColor }) {
       accent: 'text-green-500',
       bg: 'bg-green-500',
       gradient: 'from-green-500 to-emerald-400',
+    },
+    red: {
+      accent: 'text-red-500',
+      bg: 'bg-red-500',
+      gradient: 'from-red-500 to-rose-400',
+    },
+    yellow: {
+      accent: 'text-amber-500',
+      bg: 'bg-amber-500',
+      gradient: 'from-amber-400 to-yellow-400',
     }
-  }[primaryColor] || colorClasses.blue;
+  }[primaryColor] || {
+    accent: 'text-blue-500',
+    bg: 'bg-blue-500',
+    gradient: 'from-blue-500 to-cyan-400',
+  };
 
   return (
     <section id="features" className="py-20 bg-white">

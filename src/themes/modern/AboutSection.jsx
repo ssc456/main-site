@@ -27,8 +27,25 @@ function AboutSection({ title, description, image, primaryColor, logoUrl }) {
       gradient: 'from-green-500 to-emerald-400',
       light: 'bg-green-50',
       border: 'border-green-200'
+    },
+    red: {
+      accent: 'text-red-500',
+      gradient: 'from-red-500 to-rose-400',
+      light: 'bg-red-50',
+      border: 'border-red-200'
+    },
+    yellow: {
+      accent: 'text-amber-500',
+      gradient: 'from-amber-400 to-yellow-400',
+      light: 'bg-amber-50',
+      border: 'border-amber-200'
     }
-  }[primaryColor] || colorClasses.blue;
+  }[primaryColor] || {
+    accent: 'text-blue-500',
+    gradient: 'from-blue-500 to-cyan-400',
+    light: 'bg-blue-50',
+    border: 'border-blue-200'
+  };
 
   const container = {
     hidden: { opacity: 0 },

@@ -137,7 +137,7 @@ const ClientSiteSchema = z.object({
   }),
   config: z.object({
     primaryColor: z.enum(['blue', 'green', 'purple', 'pink']),
-    theme: z.enum(['default', 'modern']).optional().default('default'),
+    theme: z.enum(['default', 'modern', 'minimalist', 'gradient']).optional().default('default'),
     showHero: z.boolean(),
     showAbout: z.boolean(),
     showServices: z.boolean(),

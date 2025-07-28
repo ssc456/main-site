@@ -549,18 +549,67 @@ export default function CreateSite() {
                     </div>
                     
                     {/* Progress bar */}
-                    <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+                    <div className="w-full bg-gray-200 rounded-full h-2.5 mb-6">
                       <div 
                         className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-out"
                         style={{ width: `${progress}%` }}
                       ></div>
                     </div>
                     
-                    <p className="text-gray-500 text-center">
+                    <p className="text-gray-500 text-center mb-8">
                       {progress < 30 ? 'Setting up your site...' : 
                        progress < 60 ? 'Configuring your website...' :
                        progress < 90 ? 'Almost ready...' : 'Finalizing...'}
                     </p>
+
+                    {/* Admin Tutorial Video */}
+                    <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 max-w-4xl mx-auto">
+                      <div className="text-center mb-4">
+                        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
+                          Learn How to Customize Your Website
+                        </h3>
+                        <p className="text-sm sm:text-base text-gray-600">
+                          Watch this quick tutorial to see how easy it is to customize your new website using our admin panel
+                        </p>
+                      </div>
+                      
+                      <div className="relative bg-gray-900 rounded-lg overflow-hidden aspect-video">
+                        <video
+                          className="w-full h-full object-cover"
+                          controls
+                          autoPlay
+                          muted
+                          playsInline
+                          preload="metadata"
+                          onError={(e) => {
+                            console.log('Video failed to load:', e);
+                            e.target.style.display = 'none';
+                            e.target.nextElementSibling.style.display = 'flex';
+                          }}
+                        >
+                          <source src="/Entry Nets Adminv2.mp4" type="video/mp4" />
+                          Your browser does not support the video tag.
+                        </video>
+                        
+                        {/* Fallback content if video fails to load */}
+                        <div className="hidden items-center justify-center absolute inset-0 bg-gray-100">
+                          <div className="text-center p-4">
+                            <div className="text-gray-400 mb-2">
+                              <svg className="mx-auto h-8 w-8 sm:h-12 sm:w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                            <p className="text-sm sm:text-base text-gray-600">Tutorial video will be available shortly</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4 text-center">
+                        <p className="text-xs sm:text-sm text-gray-500">
+                          💡 <strong>Pro tip:</strong> You can access your admin panel anytime at yoursite.entrynets.com/admin
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
                 

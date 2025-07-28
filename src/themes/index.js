@@ -17,6 +17,26 @@ import * as ModernTestimonials from './modern/TestimonialsSection';
 import * as ModernFAQ from './modern/FAQSection';
 import * as ModernContact from './modern/ContactSection';
 
+// Import minimalist theme components
+import * as MinimalistHero from './minimalist/HeroSection';
+import * as MinimalistAbout from './minimalist/AboutSection';
+import * as MinimalistServices from './minimalist/ServicesSection';
+import * as MinimalistFeatures from './minimalist/FeaturesSection';
+import * as MinimalistGallery from './minimalist/GallerySection';
+import * as MinimalistTestimonials from './minimalist/TestimonialsSection';
+import * as MinimalistFAQ from './minimalist/FAQSection';
+import * as MinimalistContact from './minimalist/ContactSection';
+
+// Import gradient theme components
+import * as GradientHero from './gradient/HeroSection';
+import * as GradientAbout from './gradient/AboutSection';
+import * as GradientServices from './gradient/ServicesSection';
+import * as GradientFeatures from './gradient/FeaturesSection';
+import * as GradientGallery from './gradient/GallerySection';
+import * as GradientTestimonials from './gradient/TestimonialsSection';
+import * as GradientFAQ from './gradient/FAQSection';
+import * as GradientContact from './gradient/ContactSection';
+
 // Theme definitions
 const themes = {
   default: {
@@ -43,6 +63,32 @@ const themes = {
       TestimonialsSection: ModernTestimonials.default,
       FAQSection: ModernFAQ.default,
       ContactSection: ModernContact.default
+    }
+  },
+  minimalist: {
+    name: 'Minimalist',
+    components: {
+      HeroSection: MinimalistHero.default,
+      AboutSection: MinimalistAbout.default,
+      ServicesSection: MinimalistServices.default,
+      FeaturesSection: MinimalistFeatures.default,
+      GallerySection: MinimalistGallery.default,
+      TestimonialsSection: MinimalistTestimonials.default,
+      FAQSection: MinimalistFAQ.default,
+      ContactSection: MinimalistContact.default
+    }
+  },
+  gradient: {
+    name: 'Gradient',
+    components: {
+      HeroSection: GradientHero.default,
+      AboutSection: GradientAbout.default,
+      ServicesSection: GradientServices.default,
+      FeaturesSection: GradientFeatures.default,
+      GallerySection: GradientGallery.default,
+      TestimonialsSection: GradientTestimonials.default,
+      FAQSection: GradientFAQ.default,
+      ContactSection: GradientContact.default
     }
   }
 };
