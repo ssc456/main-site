@@ -137,8 +137,9 @@ export default function CreateSite() {
     // Start the submission process immediately
     setIsSubmitting(true);
     
-    // Move to step 4 immediately to show the video
+    // Move to step 4 immediately to show the loading state
     setStep(4);
+    setBuildStatus('initializing');
     
     // Start a countdown just for visual feedback
     setCountdown(20);
@@ -207,17 +208,31 @@ export default function CreateSite() {
         console.error("Invalid API response - missing siteId:", data);
         setError("Created site successfully, but couldn't start build monitoring");
         setCreatedSite({ siteId: formData.siteId }); // Fallback to form data
-        setStep(4);
+        setBuildStatus('building');
         return;
       }
 
       setCreatedSite(data);
       console.log("Starting polling with siteId:", data.siteId);
-      pollBuildStatus(data.siteId);
+      
+      // NOW start the progress animation and video after API completes
+      setBuildStatus('building');
+      setProgress(0);
+      let progressInterval = setInterval(() => {
+        setProgress(current => {
+          // Cap at 95% - the final 5% happens when build is complete
+          return Math.min(current + 1, 95);
+        });
+      }, 1200); // Takes ~2 minutes to reach 95%
+      
+      // Start the actual polling
+      pollBuildStatusCheck(data.siteId, progressInterval);
       
     } catch (err) {
       console.error('Form submission error:', err);
       setError(err.message || 'Failed to create site');
+      setBuildStatus('error');
+      // No progressInterval to clear here since it's only created after API success
     } finally {
       // Clear countdown if still running
       clearInterval(countdownInterval);
@@ -286,6 +301,57 @@ export default function CreateSite() {
       setTimeout(() => {
         clearInterval(interval);
         clearInterval(progressInterval);
+        if (buildStatus === 'building') {
+          setBuildStatus('unknown');
+          setProgress(99); // Show nearly complete
+        }
+      }, 5 * 60 * 1000);
+    }
+  };
+
+  // Separate function for just checking status (used when progress already started)
+  const pollBuildStatusCheck = async (siteId, existingProgressInterval) => {
+    const checkStatus = async () => {
+      try {
+        console.log(`Making status check request for: ${siteId}`);
+        const response = await fetch(`/api/sites?siteId=${siteId}&action=status`);
+        console.log("Status response:", response.status);
+        
+        if (!response.ok) throw new Error('Failed to check status');
+        const data = await response.json();
+        console.log("Status data:", data);
+        
+        if (data.status === 'ready') {
+          clearInterval(existingProgressInterval);
+          setProgress(100);
+          setBuildStatus('ready');
+          return true;
+        }
+        
+        return false;
+      } catch (err) {
+        console.error('Error checking site status:', err);
+        return false;
+      }
+    };
+    
+    // Check immediately first
+    const isReady = await checkStatus();
+    if (!isReady) {
+      // Poll every 10 seconds
+      const interval = setInterval(async () => {
+        const ready = await checkStatus();
+        if (ready) {
+          clearInterval(interval);
+          clearInterval(existingProgressInterval);
+          setProgress(100);
+        }
+      }, 10000);
+      
+      // Failsafe - clear interval after 5 minutes
+      setTimeout(() => {
+        clearInterval(interval);
+        clearInterval(existingProgressInterval);
         if (buildStatus === 'building') {
           setBuildStatus('unknown');
           setProgress(99); // Show nearly complete
@@ -533,7 +599,7 @@ export default function CreateSite() {
                 key="step4"
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="text-center py-8"
+                className="text-center py-4"
               >
                 <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-6">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -541,26 +607,41 @@ export default function CreateSite() {
                   </svg>
                 </div>
                 
-                <h2 className="text-3xl font-bold text-gray-900 mb-4">Your website is being built!</h2>
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                  {buildStatus === 'initializing' ? 'Setting up your website...' : 'Your website is being built!'}
+                </h2>
+                
+                {buildStatus === 'initializing' && (
+                  <div className="mb-6">
+                    <div className="flex items-center justify-center space-x-3 mb-3">
+                      <div className="animate-spin rounded-full h-5 w-5 border-4 border-blue-500 border-t-transparent"></div>
+                      <p className="text-lg text-gray-600">Generating your content with AI...</p>
+                    </div>
+                    
+                    <p className="text-gray-500 text-center mb-4">
+                      This may take a moment while we create customized content for your business
+                    </p>
+                  </div>
+                )}
                 
                 {(buildStatus === 'building' || buildStatus === 'ready') && (
-                  <div className="mb-8">
+                  <div className="mb-4">
                     {buildStatus === 'building' && (
                       <>
-                        <div className="flex items-center justify-center space-x-3 mb-4">
-                          <div className="animate-spin rounded-full h-6 w-6 border-4 border-blue-500 border-t-transparent"></div>
+                        <div className="flex items-center justify-center space-x-3 mb-3">
+                          <div className="animate-spin rounded-full h-5 w-5 border-4 border-blue-500 border-t-transparent"></div>
                           <p className="text-lg text-gray-600">Building your website...</p>
                         </div>
                         
                         {/* Progress bar */}
-                        <div className="w-full bg-gray-200 rounded-full h-2.5 mb-6">
+                        <div className="w-full bg-gray-200 rounded-full h-2.5 mb-4">
                           <div 
                             className="bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-out"
                             style={{ width: `${progress}%` }}
                           ></div>
                         </div>
                         
-                        <p className="text-gray-500 text-center mb-8">
+                        <p className="text-gray-500 text-center mb-4">
                           {progress < 30 ? 'Setting up your site...' : 
                            progress < 60 ? 'Configuring your website...' :
                            progress < 90 ? 'Almost ready...' : 'Finalizing...'}
@@ -569,7 +650,7 @@ export default function CreateSite() {
                     )}
                     
                     {buildStatus === 'ready' && (
-                      <div className="text-center mb-6">
+                      <div className="text-center mb-4">
                         <div className="inline-flex items-center px-4 py-2 bg-green-100 text-green-800 rounded-full mb-2">
                           <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
@@ -580,10 +661,10 @@ export default function CreateSite() {
                       </div>
                     )}
 
-                    {/* Admin Tutorial Video */}
-                    <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 max-w-4xl mx-auto">
-                      <div className="text-center mb-4">
-                        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
+                    {/* Admin Tutorial Video - only show when building or ready */}
+                    <div className="bg-white rounded-lg shadow-lg p-3 sm:p-4 max-w-5xl mx-auto">
+                      <div className="text-center mb-2">
+                        <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-1">
                           {buildStatus === 'building' ? 
                             'Learn How to Customize Your Website While You Wait' : 
                             'How to Customize Your New Website'
@@ -594,10 +675,10 @@ export default function CreateSite() {
                         </p>
                       </div>
                       
-                      <div className="relative bg-gray-900 rounded-lg overflow-hidden aspect-video">
+                      <div className="relative bg-gray-900 rounded-xl overflow-hidden" style={{ aspectRatio: '16/9' }}>
                         {/* Unmute hint */}
-                        <div className="absolute top-3 right-3 z-10 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded flex items-center">
-                          <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                        <div className="absolute top-4 right-4 z-10 bg-black bg-opacity-75 text-white text-sm px-3 py-2 rounded-lg flex items-center hover:bg-opacity-90 transition-opacity">
+                          <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.793L4.525 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.525l3.858-3.793a1 1 0 011.617.793zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.983 5.983 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.984 3.984 0 00-1.172-2.828 1 1 0 010-1.415z" clipRule="evenodd" />
                           </svg>
                           Click to unmute
@@ -622,45 +703,56 @@ export default function CreateSite() {
                         
                         {/* Fallback content if video fails to load */}
                         <div className="hidden items-center justify-center absolute inset-0 bg-gray-100">
-                          <div className="text-center p-4">
-                            <div className="text-gray-400 mb-2">
-                              <svg className="mx-auto h-8 w-8 sm:h-12 sm:w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          <div className="text-center p-6">
+                            <div className="text-gray-400 mb-3">
+                              <svg className="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 002 2z" />
                               </svg>
                             </div>
-                            <p className="text-sm sm:text-base text-gray-600">Tutorial video will be available shortly</p>
+                            <p className="text-base text-gray-600">Tutorial video will be available shortly</p>
                           </div>
                         </div>
                       </div>
                       
-                      <div className="mt-4 text-center">
-                        <p className="text-xs sm:text-sm text-gray-500">
-                          💡 <strong>Pro tip:</strong> You can access your admin panel anytime at yoursite.entrynets.com/admin
+                      {/* Action buttons when site is ready - prominently placed */}
+                      {buildStatus === 'ready' && (
+                        <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                          <div className="text-center mb-3">
+                            <div className="inline-flex items-center px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                              <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                              </svg>
+                              🎉 Your website is live!
+                            </div>
+                          </div>
+                          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                            <a 
+                              href={`https://${createdSite?.siteId}.entrynets.com`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-center font-semibold text-base shadow-md hover:shadow-lg transform hover:scale-105"
+                            >
+                              🌐 Visit Your Website
+                            </a>
+                            <a 
+                              href={`https://${createdSite?.siteId}.entrynets.com/admin`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-6 py-3 border-2 border-blue-600 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-center font-semibold text-base shadow-md hover:shadow-lg transform hover:scale-105"
+                            >
+                              ⚙️ Customize in Admin Panel
+                            </a>
+                          </div>
+                        </div>
+                      )}
+                      
+                      <div className="mt-3 text-center">
+                        <p className="text-sm text-gray-500">
+                          💡 <strong>Pro tip:</strong> Bookmark your admin panel: yoursite.entrynets.com/admin
                         </p>
                       </div>
                     </div>
                     
-                    {/* Action buttons when site is ready */}
-                    {buildStatus === 'ready' && (
-                      <div className="mt-6 flex flex-col sm:flex-row gap-4 justify-center">
-                        <a 
-                          href={`https://${createdSite?.siteId}.entrynets.com`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors text-center"
-                        >
-                          Visit Your Website
-                        </a>
-                        <a 
-                          href={`https://${createdSite?.siteId}.entrynets.com/admin`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-6 py-3 border border-blue-600 text-blue-600 rounded-md hover:bg-blue-50 transition-colors text-center"
-                        >
-                          Go to Admin Panel
-                        </a>
-                      </div>
-                    )}
                   </div>
                 )}
 
