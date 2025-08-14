@@ -722,13 +722,13 @@ async function generateAndUploadImage(siteId, prompt, folder = `sites/${siteId}/
 
   try {
     console.log('[Image] Generating image from prompt:', prompt);
-    // Call OpenAI Images API (gpt-image-1) with explicit response_format
+    // Call OpenAI Images API - by default returns base64 when not specifying url format
     const imgResp = await openai.images.generate({
       model: 'gpt-image-1',
       prompt,
       size,
-      n: 1,
-      response_format: 'b64_json'  // Explicitly request base64
+      n: 1
+      // Note: removed response_format - it defaults to base64
     });
 
     console.log('[Image] OpenAI response received, checking for b64_json...');
