@@ -18,6 +18,7 @@ import { OpenAI } from 'openai';
 import { z } from 'zod';
 import { zodTextFormat } from 'openai/helpers/zod';
 import { Resend } from 'resend';
+import { v2 as cloudinary } from 'cloudinary'; // added: Cloudinary client
 
 /* ───────── Client initialization ───────── */
 // Redis client
@@ -410,6 +411,9 @@ async function sendAdminNotificationEmail(siteId, businessName, userEmail) {
   }
 }
 
+/* ───────── Feature toggles ───────── */
+const AUTO_IMAGE_GEN = true; // set to 'false' to disable auto image generation
+
 /* ───────── Exports ───────── */
 export { sendWelcomeEmail };
 
@@ -492,6 +496,46 @@ export default async function handler(req, res) {
     siteData.paymentTier = 'FREE';  // 'FREE' or 'PREMIUM'
     siteData.stripeCustomerId = null;  // Will be populated after payment
     siteData.subscriptionId = null;   // For recurring subscriptions
+
+    /* ───── New: Auto image generation (OpenAI -> Cloudinary) ───── */
+    if (AUTO_IMAGE_GEN) {
+      console.log('[CreateSite] AUTO_IMAGE_GEN is enabled. Attempting to generate images...');
+      try {
+        // Generate logo if not provided and logoPrompt exists
+        if (!siteData.logoUrl && siteData.logoPrompt) {
+          const logoUpload = await generateAndUploadImage(siteId, siteData.logoPrompt, `sites/${siteId}/logo`, '512x512');
+          if (logoUpload) siteData.logoUrl = logoUpload.secure_url;
+        }
+
+        // About image
+        if (siteData.about && siteData.about.imagePrompt) {
+          const aboutUpload = await generateAndUploadImage(siteId, siteData.about.imagePrompt, `sites/${siteId}/about`);
+          if (aboutUpload) siteData.about.image = aboutUpload.secure_url;
+        }
+
+        // Gallery images - respect maxImages
+        if (siteData.gallery && Array.isArray(siteData.gallery.images)) {
+          const max = Math.max(0, Math.min(siteData.gallery.maxImages || siteData.gallery.images.length, siteData.gallery.images.length));
+          for (let i = 0; i < max; i++) {
+            const img = siteData.gallery.images[i];
+            if (!img) continue;
+            // Only generate if there's an imagePrompt and no existing src
+            if (img.imagePrompt && (!img.src || img.src.trim() === '')) {
+              const imgUpload = await generateAndUploadImage(siteId, img.imagePrompt, `sites/${siteId}/gallery`);
+              if (imgUpload) {
+                img.src = imgUpload.secure_url;
+                // Keep alt/title/description as provided by AI
+              }
+            }
+          }
+        }
+      } catch (imgErr) {
+        console.error('[CreateSite] Error during auto image generation:', imgErr?.message || imgErr);
+        // Do not fail site creation due to image generation issues
+      }
+    } else {
+      console.log('[CreateSite] AUTO_IMAGE_GEN is disabled - skipping image generation');
+    }
 
     // Store site data in Redis
     await redis.set(`site:${siteId}:client`, siteData);
@@ -642,5 +686,62 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error('[CreateSite] Failure:', err.response?.data || err);
     return res.status(500).json({ error: 'Failed to create site', detail: err.message });
+  }
+}
+
+/* ───────── Helper: generate image with OpenAI + upload to Cloudinary ───────── */
+async function generateAndUploadImage(siteId, prompt, folder = `sites/${siteId}/gallery`, size = '1024x1024') {
+  if (!prompt) return null;
+  if (!openai) {
+    console.warn('[Image] OpenAI client not configured');
+    return null;
+  }
+  if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+    console.warn('[Image] Cloudinary credentials not configured');
+    return null;
+  }
+
+  // configure cloudinary once (safe to call multiple times)
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+  });
+
+  try {
+    console.log('[Image] Generating image from prompt:', prompt);
+    // Call OpenAI Images API (gpt-image-1)
+    const imgResp = await openai.images.generate({
+      model: 'gpt-image-1',
+      prompt,
+      size,
+      n: 1
+    });
+
+    const b64 = imgResp.data?.[0]?.b64_json;
+    if (!b64) {
+      console.warn('[Image] No image data returned from OpenAI');
+      return null;
+    }
+
+    const dataUri = `data:image/png;base64,${b64}`;
+
+    // Upload to Cloudinary
+    console.log('[Image] Uploading image to Cloudinary folder:', folder);
+    const uploadResult = await cloudinary.uploader.upload(dataUri, {
+      folder,
+      use_filename: true,
+      unique_filename: true,
+      overwrite: false
+    });
+
+    console.log('[Image] Uploaded to Cloudinary:', uploadResult.secure_url);
+    return {
+      secure_url: uploadResult.secure_url,
+      public_id: uploadResult.public_id
+    };
+  } catch (err) {
+    console.error('[Image] Error generating or uploading image:', err?.message || err);
+    return null;
   }
 }
