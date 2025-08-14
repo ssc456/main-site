@@ -501,33 +501,42 @@ export default async function handler(req, res) {
     if (AUTO_IMAGE_GEN) {
       console.log('[CreateSite] AUTO_IMAGE_GEN is enabled. Attempting to generate images...');
       try {
-        // Generate logo if not provided and logoPrompt exists
-        if (!siteData.logoUrl && siteData.logoPrompt) {
-          const logoUpload = await generateAndUploadImage(siteId, siteData.logoPrompt, `sites/${siteId}/logo`, '512x512');
-          if (logoUpload) siteData.logoUrl = logoUpload.secure_url;
-        }
-
-        // About image
-        if (siteData.about && siteData.about.imagePrompt) {
-          const aboutUpload = await generateAndUploadImage(siteId, siteData.about.imagePrompt, `sites/${siteId}/about`);
-          if (aboutUpload) siteData.about.image = aboutUpload.secure_url;
-        }
+        // Skip logo and about for now - focus on gallery
+        console.log('[CreateSite] Skipping logo and about images - focusing on gallery');
 
         // Gallery images - respect maxImages
         if (siteData.gallery && Array.isArray(siteData.gallery.images)) {
-          const max = Math.max(0, Math.min(siteData.gallery.maxImages || siteData.gallery.images.length, siteData.gallery.images.length));
+          console.log(`[Gallery] Found ${siteData.gallery.images.length} gallery image entries`);
+          console.log(`[Gallery] maxImages setting: ${siteData.gallery.maxImages}`);
+          
+          const max = Math.min(siteData.gallery.maxImages || siteData.gallery.images.length, siteData.gallery.images.length);
+          console.log(`[Gallery] Will attempt to generate ${max} images`);
+          
           for (let i = 0; i < max; i++) {
             const img = siteData.gallery.images[i];
-            if (!img) continue;
-            // Only generate if there's an imagePrompt and no existing src
-            if (img.imagePrompt && (!img.src || img.src.trim() === '')) {
+            if (!img) {
+              console.log(`[Gallery] Image ${i} is null/undefined, skipping`);
+              continue;
+            }
+            
+            console.log(`[Gallery] Processing image ${i}: prompt="${img.imagePrompt}", existing src="${img.src}"`);
+            
+            // Generate if there's an imagePrompt (regardless of existing src)
+            if (img.imagePrompt && img.imagePrompt.trim()) {
+              console.log(`[Gallery] Generating image ${i} with prompt: ${img.imagePrompt}`);
               const imgUpload = await generateAndUploadImage(siteId, img.imagePrompt, `sites/${siteId}/gallery`);
               if (imgUpload) {
+                console.log(`[Gallery] Successfully generated image ${i}: ${imgUpload.secure_url}`);
                 img.src = imgUpload.secure_url;
-                // Keep alt/title/description as provided by AI
+              } else {
+                console.log(`[Gallery] Failed to generate image ${i}`);
               }
+            } else {
+              console.log(`[Gallery] Image ${i} has no imagePrompt, skipping`);
             }
           }
+        } else {
+          console.log('[Gallery] No gallery found or gallery.images is not an array');
         }
       } catch (imgErr) {
         console.error('[CreateSite] Error during auto image generation:', imgErr?.message || imgErr);
@@ -691,7 +700,10 @@ export default async function handler(req, res) {
 
 /* ───────── Helper: generate image with OpenAI + upload to Cloudinary ───────── */
 async function generateAndUploadImage(siteId, prompt, folder = `sites/${siteId}/gallery`, size = '1024x1024') {
-  if (!prompt) return null;
+  if (!prompt) {
+    console.log('[Image] No prompt provided');
+    return null;
+  }
   if (!openai) {
     console.warn('[Image] OpenAI client not configured');
     return null;
@@ -710,20 +722,23 @@ async function generateAndUploadImage(siteId, prompt, folder = `sites/${siteId}/
 
   try {
     console.log('[Image] Generating image from prompt:', prompt);
-    // Call OpenAI Images API (gpt-image-1)
+    // Call OpenAI Images API (gpt-image-1) with explicit response_format
     const imgResp = await openai.images.generate({
       model: 'gpt-image-1',
       prompt,
       size,
-      n: 1
+      n: 1,
+      response_format: 'b64_json'  // Explicitly request base64
     });
 
+    console.log('[Image] OpenAI response received, checking for b64_json...');
     const b64 = imgResp.data?.[0]?.b64_json;
     if (!b64) {
-      console.warn('[Image] No image data returned from OpenAI');
+      console.warn('[Image] No b64_json in OpenAI response:', JSON.stringify(imgResp.data?.[0], null, 2));
       return null;
     }
 
+    console.log('[Image] Got base64 data, length:', b64.length);
     const dataUri = `data:image/png;base64,${b64}`;
 
     // Upload to Cloudinary
@@ -742,6 +757,7 @@ async function generateAndUploadImage(siteId, prompt, folder = `sites/${siteId}/
     };
   } catch (err) {
     console.error('[Image] Error generating or uploading image:', err?.message || err);
+    console.error('[Image] Full error:', err);
     return null;
   }
 }
