@@ -412,7 +412,7 @@ async function sendAdminNotificationEmail(siteId, businessName, userEmail) {
 }
 
 /* ───────── Feature toggles ───────── */
-const AUTO_IMAGE_GEN = true; // set to 'false' to disable auto image generation
+const AUTO_IMAGE_GEN = false; // set to 'false' to disable auto image generation
 
 /* ───────── Exports ───────── */
 export { sendWelcomeEmail };
