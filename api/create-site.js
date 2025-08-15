@@ -501,8 +501,21 @@ export default async function handler(req, res) {
     if (AUTO_IMAGE_GEN) {
       console.log('[CreateSite] AUTO_IMAGE_GEN is enabled. Attempting to generate images...');
       try {
-        // Skip logo and about for now - focus on gallery
-        console.log('[CreateSite] Skipping logo and about images - focusing on gallery');
+        // Generate logo if not provided and logoPrompt exists
+        if (!req.body.logoUrl && siteData.logoPrompt) {
+          console.log('[CreateSite] No logo provided, generating logo with prompt:', siteData.logoPrompt);
+          const logoUpload = await generateAndUploadImage(siteId, siteData.logoPrompt, `sites/${siteId}/logo`, '512x512');
+          if (logoUpload) {
+            console.log('[CreateSite] Successfully generated logo:', logoUpload.secure_url);
+            siteData.logoUrl = logoUpload.secure_url;
+          } else {
+            console.log('[CreateSite] Failed to generate logo');
+          }
+        } else if (req.body.logoUrl) {
+          console.log('[CreateSite] Logo URL provided in request, skipping generation');
+        } else {
+          console.log('[CreateSite] No logoPrompt available, skipping logo generation');
+        }
 
         // Gallery images - respect maxImages
         if (siteData.gallery && Array.isArray(siteData.gallery.images)) {
