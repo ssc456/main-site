@@ -184,7 +184,7 @@ async function generateSiteContent(businessName, businessType = '', businessDesc
     3. Generate image prompts that would create high-quality images relevant to this business
     4. Primary color should match the business type or brand feel limited to Blue, Green, Purple, Pink
     5. For social media platforms that don't apply to this business, use empty strings
-    6. For testimonials, create realistic but fictional customer quotes that reflect the business description
+    6. For testimonials, create realistic but fictional customer quotes that reflect the business description. For testimonial images, use randomuser.me API URLs like "https://randomuser.me/api/portraits/women/32.jpg" or "https://randomuser.me/api/portraits/men/45.jpg" with different numbers to get different faces.
 
     You are the expert here, use your best judgment and content creation to ensure a rich, content dense site configuration.
     `;
