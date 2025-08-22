@@ -12,6 +12,7 @@ function HeroSection({
   backgroundImage
 }) {
   const navigate = useNavigate();
+  const howItWorksVideo = encodeURI('/EntrySiteCreation Final.mp4');
   
   // Color mapping
   const colorClasses = {
@@ -106,8 +107,8 @@ function HeroSection({
             </div>
           </motion.div>
           
-          {/* Right column with floating elements */}
-          <div className="hidden lg:block relative">
+          {/* How it Works video (embedded and mobile-responsive) */}
+          <div className="relative mt-8 lg:mt-0">
             <motion.div 
               initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
@@ -115,58 +116,18 @@ function HeroSection({
               className="relative z-10"
             >
               <div className="relative">
-                {/* Main shape */}
-                <div className="w-full h-80 bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl overflow-hidden shadow-2xl">
-                  <div className="absolute inset-0 bg-gradient-to-br from-black opacity-50"></div>
-                  
-                  {/* Decorative elements */}
-                  <div className={`absolute -top-10 -right-10 w-40 h-40 ${colorClasses.text} bg-opacity-10 rounded-full blur-2xl`}></div>
-                  <div className={`absolute -bottom-10 -left-10 w-40 h-40 ${colorClasses.text} bg-opacity-10 rounded-full blur-2xl`}></div>
-                  
-                  {/* Content inside shape */}
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-center text-white">
-                      <div className={`${colorClasses.text} text-5xl font-bold mb-2 opacity-80`}>
-                        <span className="sr-only">Icon</span>
-                        ★
-                      </div>
-                      <h3 className="text-xl font-semibold">Premium Quality</h3>
-                      <p className="text-sm text-gray-400 mt-2 max-w-xs mx-auto">
-                        Our services are crafted with attention to detail and excellence
-                      </p>
-                    </div>
-                  </div>
+                <div className="mb-3 text-white/90 font-semibold">How it works</div>
+                <div className="relative w-full rounded-2xl overflow-hidden shadow-2xl bg-black">
+                  {/* 16:9 aspect ratio */}
+                  <div className="pt-[56.25%]" />
+                  <video
+                    src={howItWorksVideo}
+                    controls
+                    playsInline
+                    preload="metadata"
+                    className="absolute inset-0 w-full h-full object-contain bg-black"
+                  />
                 </div>
-                
-                {/* Floating element 1 */}
-                <motion.div
-                  initial={{ x: -30, y: -30, opacity: 0 }}
-                  animate={{ x: -60, y: -60, opacity: 1 }}
-                  transition={{ delay: 0.6, duration: 0.8 }}
-                  className={`absolute w-40 h-40 ${colorClasses.button} rounded-xl shadow-xl`}
-                >
-                  <div className="h-full flex items-center justify-center text-white">
-                    <div className="text-center">
-                      <div className="text-3xl font-bold">100%</div>
-                      <div className="text-sm mt-1">Satisfaction</div>
-                    </div>
-                  </div>
-                </motion.div>
-                
-                {/* Floating element 2 */}
-                <motion.div
-                  initial={{ x: 30, y: 30, opacity: 0 }}
-                  animate={{ x: 60, y: 140, opacity: 1 }}
-                  transition={{ delay: 0.9, duration: 0.8 }}
-                  className="absolute w-40 h-40 bg-white rounded-xl shadow-xl"
-                >
-                  <div className="h-full flex items-center justify-center">
-                    <div className="text-center">
-                      <div className={`${colorClasses.text} text-3xl font-bold`}>24/7</div>
-                      <div className="text-gray-600 text-sm mt-1">Support Available</div>
-                    </div>
-                  </div>
-                </motion.div>
               </div>
             </motion.div>
           </div>
