@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, PlayCircle } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 
 function HeroSection({
   headline,
@@ -14,6 +15,31 @@ function HeroSection({
   const navigate = useNavigate();
   const howItWorksVideo = encodeURI('/EntrySiteCreation Final.mp4');
   
+  // Enhance video UX
+  const videoRef = useRef(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  // Try to render the first frame on mobile by briefly autoplaying muted then pausing
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    const tryPreview = async () => {
+      try {
+        v.muted = true;
+        await v.play();
+        setTimeout(() => {
+          v.pause();
+          v.currentTime = 0.1;
+        }, 200);
+      } catch (e) {
+        // Ignore if browser blocks autoplay
+      }
+    };
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      tryPreview();
+    }
+  }, []);
+
   // Color mapping
   const colorClasses = {
     pink: {
@@ -107,7 +133,7 @@ function HeroSection({
             </div>
           </motion.div>
           
-          {/* How it Works video (embedded and mobile-responsive) */}
+          {/* How it Works video (enhanced and mobile-responsive) */}
           <div className="relative mt-8 lg:mt-0">
             <motion.div 
               initial={{ opacity: 0, y: 50 }}
@@ -116,17 +142,50 @@ function HeroSection({
               className="relative z-10"
             >
               <div className="relative">
-                <div className="mb-3 text-white/90 font-semibold">How it works</div>
-                <div className="relative w-full rounded-2xl overflow-hidden shadow-2xl bg-black">
-                  {/* 16:9 aspect ratio */}
-                  <div className="pt-[56.25%]" />
-                  <video
-                    src={howItWorksVideo}
-                    controls
-                    playsInline
-                    preload="metadata"
-                    className="absolute inset-0 w-full h-full object-contain bg-black"
-                  />
+                <div className="mb-3 text-white/90 font-semibold flex items-center gap-2">
+                  <span className="inline-block w-2 h-2 rounded-full bg-white/60 animate-pulse" />
+                  How it works
+                </div>
+
+                {/* Gradient frame */}
+                <div className="group relative w-full rounded-2xl p-[2px] bg-gradient-to-r from-white/20 to-white/10 shadow-2xl">
+                  <div className="relative rounded-2xl overflow-hidden bg-black">
+                    {/* 16:9 aspect ratio */}
+                    <div className="pt-[56.25%]" />
+
+                    {/* Video */}
+                    <video
+                      ref={videoRef}
+                      src={howItWorksVideo}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      muted={!isPlaying}
+                      onPlay={() => setIsPlaying(true)}
+                      onPause={() => setIsPlaying(false)}
+                      className="absolute inset-0 w-full h-full object-contain bg-black"
+                    />
+
+                    {/* Overlay play badge (visible until playing) */}
+                    {!isPlaying && (
+                      <button
+                        type="button"
+                        aria-label="Play how it works video"
+                        className="absolute inset-0 flex items-center justify-center bg-gradient-to-t from-black/60 via-black/30 to-black/60 hover:from-black/50 transition-colors"
+                        onClick={() => {
+                          const v = videoRef.current;
+                          if (!v) return;
+                          v.muted = false;
+                          v.play();
+                        }}
+                      >
+                        <div className="flex items-center gap-3 text-white">
+                          <PlayCircle size={48} className="opacity-90 group-hover:scale-105 transition-transform" />
+                          <span className="text-sm sm:text-base md:text-lg font-semibold">Tap to play</span>
+                        </div>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </motion.div>
