@@ -146,18 +146,6 @@ function HeroSection({
                       className="absolute inset-0 w-full h-full object-contain bg-black rounded-xl"
                       poster="/social-preview.png"
                     />
-                    
-                    {/* Custom play overlay */}
-                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-t from-black/60 via-transparent to-black/20 opacity-100 hover:opacity-0 transition-opacity duration-300 pointer-events-none rounded-xl">
-                      <div className="flex flex-col items-center gap-3 text-white">
-                        <div className={`p-4 rounded-full bg-gradient-to-r ${colorClasses.gradient} shadow-lg animate-pulse`}>
-                          <PlayCircle size={32} className="text-white" />
-                        </div>
-                        <span className="text-sm font-medium bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">
-                          Watch Demo
-                        </span>
-                      </div>
-                    </div>
                   </div>
                   
                   {/* Bottom stats/info bar */}
