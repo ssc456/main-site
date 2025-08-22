@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, PlayCircle } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { ChevronRight, PlayCircle, Sparkles } from 'lucide-react';
 
 function HeroSection({
   headline,
@@ -15,31 +14,6 @@ function HeroSection({
   const navigate = useNavigate();
   const howItWorksVideo = encodeURI('/EntrySiteCreation Final.mp4');
   
-  // Enhance video UX
-  const videoRef = useRef(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-
-  // Try to render the first frame on mobile by briefly autoplaying muted then pausing
-  useEffect(() => {
-    const v = videoRef.current;
-    if (!v) return;
-    const tryPreview = async () => {
-      try {
-        v.muted = true;
-        await v.play();
-        setTimeout(() => {
-          v.pause();
-          v.currentTime = 0.1;
-        }, 200);
-      } catch (e) {
-        // Ignore if browser blocks autoplay
-      }
-    };
-    if (typeof window !== 'undefined' && window.innerWidth < 768) {
-      tryPreview();
-    }
-  }, []);
-
   // Color mapping
   const colorClasses = {
     pink: {
@@ -133,7 +107,7 @@ function HeroSection({
             </div>
           </motion.div>
           
-          {/* How it Works video (enhanced and mobile-responsive) */}
+          {/* How it Works video section with enhanced styling */}
           <div className="relative mt-8 lg:mt-0">
             <motion.div 
               initial={{ opacity: 0, y: 50 }}
@@ -141,50 +115,55 @@ function HeroSection({
               transition={{ duration: 0.8, delay: 0.3 }}
               className="relative z-10"
             >
-              <div className="relative">
-                <div className="mb-3 text-white/90 font-semibold flex items-center gap-2">
-                  <span className="inline-block w-2 h-2 rounded-full bg-white/60 animate-pulse" />
-                  How it works
+              {/* Section header with icon and effects */}
+              <div className="mb-6">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 backdrop-blur-sm">
+                    <Sparkles className="w-4 h-4 text-white/80" />
+                  </div>
+                  <h3 className="text-xl font-bold text-white">How It Works</h3>
                 </div>
+                <p className="text-white/70 text-sm">See our platform in action</p>
+              </div>
 
-                {/* Gradient frame */}
-                <div className="group relative w-full rounded-2xl p-[2px] bg-gradient-to-r from-white/20 to-white/10 shadow-2xl">
-                  <div className="relative rounded-2xl overflow-hidden bg-black">
+              {/* Video container with glass morphism and glow effects */}
+              <div className="relative group">
+                {/* Animated glow background */}
+                <div className={`absolute -inset-1 bg-gradient-to-r ${colorClasses.gradient} rounded-3xl blur-lg opacity-60 group-hover:opacity-80 transition-opacity duration-500`}></div>
+                
+                {/* Glass container */}
+                <div className="relative backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl p-4 shadow-2xl">
+                  <div className="relative w-full rounded-xl overflow-hidden bg-black/50">
                     {/* 16:9 aspect ratio */}
                     <div className="pt-[56.25%]" />
-
-                    {/* Video */}
+                    
+                    {/* Video element */}
                     <video
-                      ref={videoRef}
                       src={howItWorksVideo}
                       controls
                       playsInline
                       preload="metadata"
-                      muted={!isPlaying}
-                      onPlay={() => setIsPlaying(true)}
-                      onPause={() => setIsPlaying(false)}
-                      className="absolute inset-0 w-full h-full object-contain bg-black"
+                      className="absolute inset-0 w-full h-full object-contain bg-black rounded-xl"
+                      poster="/social-preview.png"
                     />
-
-                    {/* Overlay play badge (visible until playing) */}
-                    {!isPlaying && (
-                      <button
-                        type="button"
-                        aria-label="Play how it works video"
-                        className="absolute inset-0 flex items-center justify-center bg-gradient-to-t from-black/60 via-black/30 to-black/60 hover:from-black/50 transition-colors"
-                        onClick={() => {
-                          const v = videoRef.current;
-                          if (!v) return;
-                          v.muted = false;
-                          v.play();
-                        }}
-                      >
-                        <div className="flex items-center gap-3 text-white">
-                          <PlayCircle size={48} className="opacity-90 group-hover:scale-105 transition-transform" />
-                          <span className="text-sm sm:text-base md:text-lg font-semibold">Tap to play</span>
+                    
+                    {/* Custom play overlay */}
+                    <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-t from-black/60 via-transparent to-black/20 opacity-100 hover:opacity-0 transition-opacity duration-300 pointer-events-none rounded-xl">
+                      <div className="flex flex-col items-center gap-3 text-white">
+                        <div className={`p-4 rounded-full bg-gradient-to-r ${colorClasses.gradient} shadow-lg animate-pulse`}>
+                          <PlayCircle size={32} className="text-white" />
                         </div>
-                      </button>
-                    )}
+                        <span className="text-sm font-medium bg-black/50 px-3 py-1 rounded-full backdrop-blur-sm">
+                          Watch Demo
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Bottom stats/info bar */}
+                  <div className="flex items-center justify-between mt-4 text-white/60 text-xs">
+                    <span>🎥 Tutorial Video</span>
+                    <span>⏱️ 2 min watch</span>
                   </div>
                 </div>
               </div>
