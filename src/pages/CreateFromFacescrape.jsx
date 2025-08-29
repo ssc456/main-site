@@ -804,7 +804,7 @@ export default function CreateFromFacescrape() {
 
 I have mocked up a website for you so you can see what this could look like: https://${createdSite?.siteId}.entrynets.com
 
-Everything is customisable on your admin panel: https://${createdSite?.siteId}.entrynets.com/admin
+Everything is customisable on your admin panel and you can upload images to your gallery: https://${createdSite?.siteId}.entrynets.com/admin
 
 Login with password: ${formData.password}
 
