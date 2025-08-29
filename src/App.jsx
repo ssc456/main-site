@@ -7,6 +7,7 @@ import { getThemedComponent } from './themes';
 import AdminLogin from './admin/AdminLogin';
 import AdminDashboard from './admin/AdminDashboard';
 import CreateSite from './pages/CreateSite';
+import CreateFromFacescrape from './pages/CreateFromFacescrape';
 import { extractSiteId } from './utils/siteId';
 import { initializePreviewDebugging, updatePreviewTitle } from './utils/previewHelpers';
 import { Analytics } from '@vercel/analytics/react';
@@ -226,6 +227,7 @@ function App() {
         <Route path="/admin" element={<AdminLogin />} />
         <Route path="/admin/dashboard/*" element={<AdminDashboard />} />
         <Route path="/create" element={<CreateSite />} />
+        <Route path="/create-from-facescrape" element={<CreateFromFacescrape />} />
         <Route path="/" element={
           <div className='min-h-screen bg-white scroll-smooth'>
             <Header siteTitle={content.siteTitle} logoUrl={content.logoUrl} config={config} primaryColor={config.primaryColor} />
