@@ -785,6 +785,55 @@ export default function CreateFromFacescrape() {
                   </div>
                 )}
                 
+                {/* Customer Outreach Message for FACESCRAPE */}
+                {buildStatus === 'ready' && (
+                  <div className="mt-6 border-t border-gray-200 pt-6">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                      <svg className="w-5 h-5 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-3.582 8-8 8a8.001 8.001 0 01-7.003-4.165L2 20l4.165-2.997A8.001 8.001 0 1121 12z" />
+                      </svg>
+                      Customer Outreach Message
+                    </h3>
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <p className="text-sm text-blue-800 mb-3">
+                        Copy this message to reach out to the business owner:
+                      </p>
+                      <div className="bg-white border rounded-lg p-4 text-sm relative">
+                        <div className="text-gray-800 leading-relaxed whitespace-pre-line" id="customerMessage">
+{`I noticed you didn't have a website listed on your page.
+
+I have mocked up a website for you so you can see what this could look like: https://${createdSite?.siteId}.entrynets.com
+
+Everything is customisable on your admin panel: https://${createdSite?.siteId}.entrynets.com/admin
+
+Login with password: ${formData.password}
+
+Let me know if you are interested, no worries if not, I wish you all the best.`}
+                        </div>
+                        <button
+                          onClick={() => {
+                            const message = document.getElementById('customerMessage').textContent;
+                            navigator.clipboard.writeText(message).then(() => {
+                              // Show success feedback
+                              const button = event.target;
+                              const originalText = button.textContent;
+                              button.textContent = '✓ Copied!';
+                              button.classList.add('bg-green-600');
+                              setTimeout(() => {
+                                button.textContent = originalText;
+                                button.classList.remove('bg-green-600');
+                              }, 2000);
+                            });
+                          }}
+                          className="absolute top-2 right-2 px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
+                        >
+                          Copy Message
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 <div className="mt-6 border-t border-gray-200 pt-6">
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Your website details</h3>
                   <div className="bg-gray-50 rounded-md p-4 text-left">
