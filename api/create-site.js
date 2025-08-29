@@ -185,6 +185,7 @@ async function generateSiteContent(businessName, businessType = '', businessDesc
     4. Primary color should match the business type or brand feel limited to Blue, Green, Purple, Pink
     5. For social media platforms that don't apply to this business, use empty strings
     6. For testimonials, create realistic but fictional customer quotes that reflect the business description. For testimonial images, use randomuser.me API URLs like "https://randomuser.me/api/portraits/women/32.jpg" or "https://randomuser.me/api/portraits/men/45.jpg" with different numbers to get different faces.
+    7. For gallery images, ALWAYS set the "src" field to "PLACEHOLDER" - this will be replaced with generated images. Focus on creating good titles, descriptions, and imagePrompts for each gallery item.
 
     You are the expert here, use your best judgment and content creation to ensure a rich, content dense site configuration.
     `;
@@ -542,10 +543,12 @@ export default async function handler(req, res) {
                 console.log(`[Gallery] Successfully generated image ${i}: ${imgUpload.secure_url}`);
                 img.src = imgUpload.secure_url;
               } else {
-                console.log(`[Gallery] Failed to generate image ${i}`);
+                console.log(`[Gallery] Failed to generate image ${i}, keeping as PLACEHOLDER`);
+                img.src = 'PLACEHOLDER'; // Explicitly set to PLACEHOLDER on failure
               }
             } else {
-              console.log(`[Gallery] Image ${i} has no imagePrompt, skipping`);
+              console.log(`[Gallery] Image ${i} has no imagePrompt, keeping as PLACEHOLDER`);
+              img.src = 'PLACEHOLDER'; // Explicitly set to PLACEHOLDER when no prompt
             }
           }
         } else {
