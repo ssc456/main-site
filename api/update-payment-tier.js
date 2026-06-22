@@ -1,4 +1,5 @@
 import { Redis } from '@upstash/redis';
+import { setOverlayPaymentTier } from './utils/overlaySites.js';
 
 // Initialize Redis client
 const redis = new Redis({
@@ -28,10 +29,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { siteId, paymentTier } = req.body;
+    const { siteId, siteKey, paymentTier, siteType } = req.body;
     
-    if (!siteId || !paymentTier) {
-      return res.status(400).json({ error: 'Site ID and payment tier are required' });
+    if ((!siteId && !siteKey) || !paymentTier) {
+      return res.status(400).json({ error: 'Site identifier and payment tier are required' });
     }
     
     // Verify valid payment tier
@@ -39,6 +40,21 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Invalid payment tier' });
     }
     
+    if (siteType === 'overlay') {
+      const updatedOverlaySite = await setOverlayPaymentTier(siteKey, paymentTier, {
+        subscriptionId: paymentTier === 'FREE' ? null : undefined,
+      });
+
+      if (!updatedOverlaySite) {
+        return res.status(404).json({ error: 'External site not found' });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: `External site ${siteKey} payment tier updated to ${paymentTier}`
+      });
+    }
+
     // Get site data
     const siteData = await redis.get(`site:${siteId}:client`);
     

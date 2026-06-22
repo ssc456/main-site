@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { Redis } from '@upstash/redis';
 import { buffer } from 'micro';
+import { findOverlaySiteBySubscriptionId, saveOverlaySite, setOverlayPaymentTier } from './utils/overlaySites.js';
 
 // Initialize Redis client
 const redis = new Redis({
@@ -41,6 +42,17 @@ export default async function handler(req, res) {
     switch (event.type) {
       case 'checkout.session.completed': {
         const session = event.data.object;
+        const billingKind = session.metadata?.billingKind;
+
+        if (billingKind === 'overlay-site' && session.metadata?.siteKey) {
+          await setOverlayPaymentTier(session.metadata.siteKey, 'PREMIUM', {
+            stripeCustomerId: session.customer || null,
+            subscriptionId: session.subscription || null,
+          });
+          console.log(`[Stripe Webhook] External site ${session.metadata.siteKey} upgraded to PREMIUM`);
+          break;
+        }
+
         const siteId = session.metadata.siteId;
         const paymentType = session.metadata.paymentType;
         
@@ -72,6 +84,18 @@ export default async function handler(req, res) {
       case 'customer.subscription.deleted': {
         const subscription = event.data.object;
         console.log(`[Stripe Webhook] Subscription ${subscription.id} canceled`);
+
+        const overlaySite = await findOverlaySiteBySubscriptionId(subscription.id);
+        if (overlaySite) {
+          await saveOverlaySite({
+            ...overlaySite,
+            paymentTier: 'FREE',
+            subscriptionId: null,
+            updatedAt: new Date().toISOString(),
+          });
+          console.log(`[Stripe Webhook] Downgraded external site ${overlaySite.siteKey} due to canceled subscription`);
+          break;
+        }
         
         // Find sites with this subscription ID and downgrade them
         const keys = await redis.keys('site:*:client');

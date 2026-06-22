@@ -3,7 +3,9 @@ import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 
 export default function SitesList() {
+  const billingBaseUrl = window.location.origin;
   const [sites, setSites] = useState([]);
+  const [externalSites, setExternalSites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedSite, setExpandedSite] = useState(null);
@@ -20,6 +22,19 @@ export default function SitesList() {
     businessType: '',
     email: '',
     password: '',
+  });
+  const [showExternalForm, setShowExternalForm] = useState(false);
+  const [isCreatingExternal, setIsCreatingExternal] = useState(false);
+  const [editingExternalSiteKey, setEditingExternalSiteKey] = useState('');
+  const [externalSiteToDelete, setExternalSiteToDelete] = useState(null);
+  const [isDeletingExternal, setIsDeletingExternal] = useState(false);
+  const [externalFormData, setExternalFormData] = useState({
+    displayName: '',
+    siteKey: '',
+    ownerEmail: '',
+    productionUrl: '',
+    repoUrl: '',
+    allowedDomainsText: 'localhost,127.0.0.1',
   });
   
   // Add this to your existing state variables
@@ -38,19 +53,33 @@ export default function SitesList() {
       // Get CSRF token from sessionStorage (same as AdminDashboard)
       const csrfToken = sessionStorage.getItem('csrfToken');
       
-      const response = await fetch('/api/sites', {
-        credentials: 'include',  // Include cookies for auth
-        headers: {
-          'X-CSRF-Token': csrfToken || ''
-        }
-      });
+      const [response, externalResponse] = await Promise.all([
+        fetch('/api/sites', {
+          credentials: 'include',
+          headers: {
+            'X-CSRF-Token': csrfToken || ''
+          }
+        }),
+        fetch('/api/external-sites', {
+          credentials: 'include',
+          headers: {
+            'X-CSRF-Token': csrfToken || ''
+          }
+        })
+      ]);
       
       if (!response.ok) {
         throw new Error(`Failed to fetch sites: ${response.statusText}`);
       }
+
+      if (!externalResponse.ok) {
+        throw new Error(`Failed to fetch external sites: ${externalResponse.statusText}`);
+      }
       
       const data = await response.json();
+      const externalData = await externalResponse.json();
       setSites(data.sites || []);
+      setExternalSites((externalData.externalSites || []).map((site) => ({ ...site, siteKind: 'overlay' })));
     } catch (err) {
       console.error('Error fetching sites:', err);
       setError(err.message);
@@ -62,6 +91,21 @@ export default function SitesList() {
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
     toast.success('URL copied to clipboard');
+  };
+
+  const getUpgradeUrl = (siteKey) => `${billingBaseUrl}/upgrade/${encodeURIComponent(siteKey)}`;
+
+  const getHtmlSnippet = (siteKey) => `<script src="${billingBaseUrl}/entrynets-overlay.js"></script>\n<script>\n  window.EntryNetsOverlay.init({\n    siteKey: '${siteKey}',\n    billingBaseUrl: '${billingBaseUrl}'\n  });\n</script>`;
+
+  const getReactSnippet = (siteKey) => `useEffect(() => {\n  const script = document.createElement('script');\n  script.src = '${billingBaseUrl}/entrynets-overlay.js';\n  script.onload = () => {\n    window.EntryNetsOverlay.init({\n      siteKey: '${siteKey}',\n      billingBaseUrl: '${billingBaseUrl}'\n    });\n  };\n  document.head.appendChild(script);\n\n  return () => {\n    document.head.removeChild(script);\n  };\n}, []);`;
+
+  const copyExternalSnippet = (site, variant = 'html') => {
+    const snippet = variant === 'react'
+      ? getReactSnippet(site.siteKey)
+      : getHtmlSnippet(site.siteKey);
+
+    navigator.clipboard.writeText(snippet);
+    toast.success(`${variant === 'react' ? 'React' : 'HTML'} overlay snippet copied to clipboard`);
   };
   
   const toggleSiteExpanded = (siteId) => {
@@ -123,6 +167,147 @@ export default function SitesList() {
       email: '',
       password: '',
     });
+  };
+
+  const openExternalForm = () => {
+    setShowExternalForm(true);
+  };
+
+  const closeExternalForm = () => {
+    setShowExternalForm(false);
+    setEditingExternalSiteKey('');
+    setExternalFormData({
+      displayName: '',
+      siteKey: '',
+      ownerEmail: '',
+      productionUrl: '',
+      repoUrl: '',
+      allowedDomainsText: 'localhost,127.0.0.1',
+    });
+  };
+
+  const openEditExternalForm = (site) => {
+    setEditingExternalSiteKey(site.siteKey);
+    setExternalFormData({
+      displayName: site.displayName || '',
+      siteKey: site.siteKey || '',
+      ownerEmail: site.ownerEmail || '',
+      productionUrl: site.productionUrl || '',
+      repoUrl: site.repoUrl || '',
+      allowedDomainsText: (site.allowedDomains || []).join(','),
+    });
+    setShowExternalForm(true);
+  };
+
+  const openDeleteExternalConfirmation = (site) => {
+    setExternalSiteToDelete(site);
+  };
+
+  const closeDeleteExternalConfirmation = () => {
+    setExternalSiteToDelete(null);
+  };
+
+  const handleExternalFormChange = (e) => {
+    const { name, value } = e.target;
+
+    if (name === 'siteKey') {
+      setExternalFormData({
+        ...externalFormData,
+        siteKey: value
+          .toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^a-z0-9-]/g, '')
+      });
+      return;
+    }
+
+    if (name === 'displayName' && !externalFormData.siteKey) {
+      setExternalFormData({
+        ...externalFormData,
+        displayName: value,
+        siteKey: value
+          .toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^a-z0-9-]/g, '')
+      });
+      return;
+    }
+
+    setExternalFormData({ ...externalFormData, [name]: value });
+  };
+
+  const createExternalSite = async (e) => {
+    e.preventDefault();
+
+    if (!externalFormData.displayName || !externalFormData.siteKey) {
+      toast.error('Display name and site key are required');
+      return;
+    }
+
+    if (!externalFormData.productionUrl && !externalFormData.allowedDomainsText.trim()) {
+      toast.error('Provide a production URL or at least one allowed domain');
+      return;
+    }
+
+    setIsCreatingExternal(true);
+    try {
+      const csrfToken = sessionStorage.getItem('csrfToken');
+      const response = await fetch('/api/external-sites', {
+        method: editingExternalSiteKey ? 'PATCH' : 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken || ''
+        },
+        body: JSON.stringify(externalFormData)
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to register external site');
+      }
+
+      toast.success(`External site "${data.externalSite.displayName}" ${editingExternalSiteKey ? 'updated' : 'registered'} successfully`);
+      closeExternalForm();
+      fetchSites();
+    } catch (err) {
+      console.error('Error creating external site:', err);
+      toast.error(err.message || 'Failed to register external site');
+    } finally {
+      setIsCreatingExternal(false);
+    }
+  };
+
+  const deleteExternalSite = async () => {
+    if (!externalSiteToDelete) {
+      return;
+    }
+
+    setIsDeletingExternal(true);
+    try {
+      const csrfToken = sessionStorage.getItem('csrfToken');
+      const response = await fetch(`/api/external-sites?siteKey=${encodeURIComponent(externalSiteToDelete.siteKey)}`, {
+        method: 'DELETE',
+        credentials: 'include',
+        headers: {
+          'X-CSRF-Token': csrfToken || ''
+        }
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to delete external site');
+      }
+
+      toast.success(`External site "${externalSiteToDelete.displayName}" deleted successfully`);
+      closeDeleteExternalConfirmation();
+      fetchSites();
+    } catch (err) {
+      console.error('Error deleting external site:', err);
+      toast.error(err.message || 'Failed to delete external site');
+    } finally {
+      setIsDeletingExternal(false);
+    }
   };
   
   const handleFormChange = (e) => {
@@ -247,7 +432,9 @@ export default function SitesList() {
         },
         credentials: 'include',
         body: JSON.stringify({ 
-          siteId: siteToUpdate.siteId, 
+          siteId: siteToUpdate.siteId,
+          siteKey: siteToUpdate.siteKey,
+          siteType: siteToUpdate.siteKind === 'overlay' ? 'overlay' : 'managed',
           paymentTier: targetTier 
         })
       });
@@ -256,7 +443,7 @@ export default function SitesList() {
         throw new Error('Failed to update payment tier');
       }
       
-      toast.success(`Site ${siteToUpdate.siteId} payment tier changed to ${targetTier}`);
+      toast.success(`Site ${siteToUpdate.siteId || siteToUpdate.siteKey} payment tier changed to ${targetTier}`);
       fetchSites(); // Refresh the site list
       closeTierModal();
     } catch (error) {
@@ -432,6 +619,135 @@ export default function SitesList() {
           </div>
         )}
       </div>
+
+      <div className="bg-white p-6 rounded-lg shadow-sm">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-xl font-bold">External Overlay Sites</h2>
+            <p className="text-gray-600">
+              Register sites built outside the template system so Entry Nets can track their free or premium status.
+            </p>
+          </div>
+          <button
+            onClick={openExternalForm}
+            className="px-4 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 flex items-center"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
+            </svg>
+            Register External Site
+          </button>
+        </div>
+
+        {externalSites.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-gray-300 px-6 py-10 text-center text-gray-600">
+            No external overlay sites have been registered yet.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">External Site</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Allowed Domains</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Production URL</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Tier</th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {externalSites.map((site) => (
+                  <tr key={site.siteKey} className="hover:bg-gray-50">
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-gray-900">{site.displayName}</div>
+                      <div className="text-sm text-gray-500">Key: {site.siteKey}</div>
+                      {site.ownerEmail && <div className="text-sm text-gray-500">Owner: {site.ownerEmail}</div>}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-600">
+                      {site.allowedDomains?.length ? site.allowedDomains.join(', ') : 'None set'}
+                    </td>
+                    <td className="px-6 py-4 text-sm">
+                      {site.productionUrl ? (
+                        <a href={site.productionUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:text-blue-800">
+                          {site.productionUrl}
+                        </a>
+                      ) : (
+                        <span className="text-gray-500">Not set</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full flex items-center ${site.paymentTier === 'PREMIUM' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                          {site.paymentTier || 'FREE'}
+                        </span>
+                        <button
+                          onClick={() => openTierUpdateModal(site)}
+                          className="ml-2 text-gray-500 hover:text-gray-700"
+                          title={`Change to ${site.paymentTier === 'PREMIUM' ? 'FREE' : 'PREMIUM'}`}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center text-sm">
+                      <div className="flex justify-center space-x-3">
+                        <button
+                          onClick={() => copyToClipboard(site.siteKey)}
+                          className="rounded-full border border-gray-200 px-3 py-1 text-xs font-medium text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                          title="Copy site key"
+                        >
+                          Key
+                        </button>
+                        <button
+                          onClick={() => copyToClipboard(getUpgradeUrl(site.siteKey))}
+                          className="rounded-full border border-cyan-200 px-3 py-1 text-xs font-medium text-cyan-700 hover:border-cyan-300 hover:bg-cyan-50"
+                          title="Copy hosted upgrade URL"
+                        >
+                          Upgrade URL
+                        </button>
+                        <button
+                          onClick={() => copyExternalSnippet(site, 'html')}
+                          className="rounded-full border border-cyan-200 px-3 py-1 text-xs font-medium text-cyan-700 hover:border-cyan-300 hover:bg-cyan-50"
+                          title="Copy HTML snippet"
+                        >
+                          HTML
+                        </button>
+                        <button
+                          onClick={() => copyExternalSnippet(site, 'react')}
+                          className="rounded-full border border-indigo-200 px-3 py-1 text-xs font-medium text-indigo-700 hover:border-indigo-300 hover:bg-indigo-50"
+                          title="Copy React snippet"
+                        >
+                          React
+                        </button>
+                        <button
+                          onClick={() => openEditExternalForm(site)}
+                          className="text-blue-600 hover:text-blue-800"
+                          title="Edit external site"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M17.414 2.586a2 2 0 010 2.828l-8.5 8.5A2 2 0 018.086 14H5a1 1 0 01-1-1v-3.086a2 2 0 01.586-1.414l8.5-8.5a2 2 0 012.828 0z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => openDeleteExternalConfirmation(site)}
+                          className="text-red-500 hover:text-red-700"
+                          title="Delete external site"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
       
       {/* Delete Confirmation Dialog - Your existing code */}
       {showConfirmDialog && (
@@ -597,6 +913,215 @@ export default function SitesList() {
           </div>
         </div>
       )}
+
+      {showExternalForm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-2xl w-full">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">{editingExternalSiteKey ? 'Edit External Overlay Site' : 'Register External Overlay Site'}</h3>
+
+            <form onSubmit={createExternalSite}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="externalDisplayName" className="block text-sm font-medium text-gray-700 mb-1">
+                    Display Name *
+                  </label>
+                  <input
+                    type="text"
+                    id="externalDisplayName"
+                    name="displayName"
+                    value={externalFormData.displayName}
+                    onChange={handleExternalFormChange}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="externalSiteKey" className="block text-sm font-medium text-gray-700 mb-1">
+                    Site Key *
+                  </label>
+                  <input
+                    type="text"
+                    id="externalSiteKey"
+                    name="siteKey"
+                    value={externalFormData.siteKey}
+                    onChange={handleExternalFormChange}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    placeholder="lovable-client-site"
+                    pattern="[a-z0-9-]+"
+                    disabled={!!editingExternalSiteKey}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="externalOwnerEmail" className="block text-sm font-medium text-gray-700 mb-1">
+                    Owner Email
+                  </label>
+                  <input
+                    type="email"
+                    id="externalOwnerEmail"
+                    name="ownerEmail"
+                    value={externalFormData.ownerEmail}
+                    onChange={handleExternalFormChange}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="externalProductionUrl" className="block text-sm font-medium text-gray-700 mb-1">
+                    Production URL
+                  </label>
+                  <input
+                    type="text"
+                    id="externalProductionUrl"
+                    name="productionUrl"
+                    value={externalFormData.productionUrl}
+                    onChange={handleExternalFormChange}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    placeholder="https://clientsite.com"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="externalRepoUrl" className="block text-sm font-medium text-gray-700 mb-1">
+                    Repo URL
+                  </label>
+                  <input
+                    type="text"
+                    id="externalRepoUrl"
+                    name="repoUrl"
+                    value={externalFormData.repoUrl}
+                    onChange={handleExternalFormChange}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    placeholder="https://github.com/you/client-site"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="externalAllowedDomains" className="block text-sm font-medium text-gray-700 mb-1">
+                    Allowed Domains
+                  </label>
+                  <input
+                    type="text"
+                    id="externalAllowedDomains"
+                    name="allowedDomainsText"
+                    value={externalFormData.allowedDomainsText}
+                    onChange={handleExternalFormChange}
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                    placeholder="clientsite.com,www.clientsite.com,localhost"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Comma-separated. The production URL hostname is added automatically.
+                  </p>
+                </div>
+              </div>
+
+              {externalFormData.siteKey && (
+                <div className="mt-4 space-y-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">Hosted upgrade URL</p>
+                    <div className="mt-2 rounded-md bg-white px-3 py-2 text-xs text-slate-700 break-all border border-slate-200">
+                      {getUpgradeUrl(externalFormData.siteKey)}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-medium text-slate-900">HTML snippet</p>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(getHtmlSnippet(externalFormData.siteKey))}
+                        className="rounded-full border border-cyan-200 px-3 py-1 text-xs font-medium text-cyan-700 hover:border-cyan-300 hover:bg-cyan-50"
+                      >
+                        Copy HTML
+                      </button>
+                    </div>
+                    <pre className="mt-2 overflow-x-auto rounded-md border border-slate-200 bg-white p-3 text-xs text-slate-800"><code>{getHtmlSnippet(externalFormData.siteKey)}</code></pre>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-sm font-medium text-slate-900">React snippet</p>
+                      <button
+                        type="button"
+                        onClick={() => copyToClipboard(getReactSnippet(externalFormData.siteKey))}
+                        className="rounded-full border border-indigo-200 px-3 py-1 text-xs font-medium text-indigo-700 hover:border-indigo-300 hover:bg-indigo-50"
+                      >
+                        Copy React
+                      </button>
+                    </div>
+                    <pre className="mt-2 overflow-x-auto rounded-md border border-slate-200 bg-white p-3 text-xs text-slate-800"><code>{getReactSnippet(externalFormData.siteKey)}</code></pre>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-4 rounded-lg bg-cyan-50 px-4 py-3 text-sm text-cyan-900">
+                After registration, copy the overlay snippet from the table and paste it into the external site.
+              </div>
+
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={closeExternalForm}
+                  disabled={isCreatingExternal}
+                  className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isCreatingExternal}
+                  className="px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700 flex items-center"
+                >
+                  {isCreatingExternal ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                      Saving...
+                    </>
+                  ) : (
+                    editingExternalSiteKey ? 'Save Changes' : 'Register External Site'
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {externalSiteToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-md w-full">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">Delete External Site</h3>
+            <p className="mb-6 text-gray-600">
+              Delete <span className="font-semibold">{externalSiteToDelete.displayName}</span> from the Entry Nets registry? The external site will stop resolving billing status after this.
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={closeDeleteExternalConfirmation}
+                disabled={isDeletingExternal}
+                className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteExternalSite}
+                disabled={isDeletingExternal}
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 flex items-center"
+              >
+                {isDeletingExternal ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete External Site'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* Payment Tier Update Modal */}
       {showTierModal && siteToUpdate && (
@@ -605,7 +1130,7 @@ export default function SitesList() {
             <h3 className="text-lg font-bold text-gray-900 mb-4">Update Payment Tier</h3>
             
             <p className="mb-4 text-gray-600">
-              Site <span className="font-semibold">{siteToUpdate.siteId}</span> is currently on the <span className="font-semibold">{siteToUpdate.paymentTier} tier</span>.
+              Site <span className="font-semibold">{siteToUpdate.siteId || siteToUpdate.siteKey}</span> is currently on the <span className="font-semibold">{siteToUpdate.paymentTier} tier</span>.
             </p>
             
             {/* Add contextual warning information in the payment tier modal */}
