@@ -8,6 +8,8 @@ import AdminLogin from './admin/AdminLogin';
 import AdminDashboard from './admin/AdminDashboard';
 import CreateSite from './pages/CreateSite';
 import CreateFromFacescrape from './pages/CreateFromFacescrape';
+import OverlayUpgradePage from './pages/OverlayUpgradePage';
+import OverlayUpgradeSuccess from './pages/OverlayUpgradeSuccess';
 import { extractSiteId } from './utils/siteId';
 import { initializePreviewDebugging, updatePreviewTitle } from './utils/previewHelpers';
 import { Analytics } from '@vercel/analytics/react';
@@ -18,6 +20,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [siteId, setSiteId] = useState('');
   const [isPreview, setIsPreview] = useState(false);
+  const isOverlayBillingRoute = window.location.pathname.startsWith('/upgrade/') || window.location.pathname === '/upgrade-success';
 
   useEffect(() => {
     initializePreviewDebugging();
@@ -95,6 +98,11 @@ function App() {
   };
 
   useEffect(() => {
+    if (isOverlayBillingRoute) {
+      setLoading(false);
+      return;
+    }
+
     // Check if we're in preview mode
     const previewMode = window.location.search.includes('preview=true');
     setIsPreview(previewMode);
@@ -195,6 +203,18 @@ function App() {
       });
   }, []);
   
+  if (isOverlayBillingRoute) {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="/upgrade/:siteKey" element={<OverlayUpgradePage />} />
+          <Route path="/upgrade-success" element={<OverlayUpgradeSuccess />} />
+        </Routes>
+        <Analytics />
+      </BrowserRouter>
+    );
+  }
+
   if (loading) {
     return (
       <div className='min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-purple-50'>
@@ -228,6 +248,8 @@ function App() {
         <Route path="/admin/dashboard/*" element={<AdminDashboard />} />
         <Route path="/create" element={<CreateSite />} />
         <Route path="/create-from-facescrape" element={<CreateFromFacescrape />} />
+        <Route path="/upgrade/:siteKey" element={<OverlayUpgradePage />} />
+        <Route path="/upgrade-success" element={<OverlayUpgradeSuccess />} />
         <Route path="/" element={
           <div className='min-h-screen bg-white scroll-smooth'>
             <Header siteTitle={content.siteTitle} logoUrl={content.logoUrl} config={config} primaryColor={config.primaryColor} />
