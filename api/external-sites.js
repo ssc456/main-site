@@ -2,7 +2,10 @@ import Stripe from 'stripe';
 import {
   deleteOverlaySite,
   getOverlaySite,
+  getOverlayPriceId,
   getRequestBaseUrl,
+  hasAnyLiveBillingPlan,
+  hasLiveBillingPlan,
   isDemoBillingMode,
   listOverlaySites,
   normalizeReturnUrl,
@@ -118,6 +121,9 @@ export default async function handler(req, res) {
         monthlyPriceLabel: site.monthlyPriceLabel,
         yearlyPriceLabel: site.yearlyPriceLabel,
         upgradeUrl: `${baseUrl}/upgrade/${encodeURIComponent(site.siteKey)}`,
+        monthlyLiveAvailable: hasLiveBillingPlan('monthly'),
+        yearlyLiveAvailable: hasLiveBillingPlan('yearly'),
+        liveBillingAvailable: hasAnyLiveBillingPlan(),
         demoMode: isDemoBillingMode(),
       });
     } catch (error) {
@@ -148,7 +154,7 @@ export default async function handler(req, res) {
       const safeReturnUrl = normalizeReturnUrl(returnUrl, site);
       const returnUrlQuery = safeReturnUrl ? `&returnUrl=${encodeURIComponent(safeReturnUrl)}` : '';
 
-      if (isDemoBillingMode() || !stripe) {
+      if (isDemoBillingMode()) {
         await setOverlayPaymentTier(site.siteKey, 'PREMIUM', {
           stripeCustomerId: 'demo-customer',
           subscriptionId: `demo-${site.siteKey}`,
@@ -160,12 +166,10 @@ export default async function handler(req, res) {
         });
       }
 
-      const priceId = interval === 'yearly'
-        ? process.env.STRIPE_YEARLY_PRICE_ID
-        : process.env.STRIPE_MONTHLY_PRICE_ID;
+      const priceId = getOverlayPriceId(interval);
 
       if (!priceId) {
-        return res.status(500).json({ error: 'Stripe price configuration is incomplete' });
+        return res.status(500).json({ error: `Stripe ${interval} price configuration is incomplete` });
       }
 
       const session = await stripe.checkout.sessions.create({

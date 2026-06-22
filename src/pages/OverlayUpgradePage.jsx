@@ -11,6 +11,9 @@ export default function OverlayUpgradePage() {
 
   const returnUrl = searchParams.get('returnUrl') || '';
   const canceled = searchParams.get('canceled') === '1';
+  const liveBillingAvailable = site?.liveBillingAvailable !== false;
+  const monthlyLiveAvailable = site?.monthlyLiveAvailable !== false;
+  const yearlyLiveAvailable = site?.yearlyLiveAvailable !== false;
 
   useEffect(() => {
     let isMounted = true;
@@ -139,10 +142,14 @@ export default function OverlayUpgradePage() {
               </ul>
               <button
                 className="mt-8 w-full rounded-full bg-cyan-400 px-5 py-3 font-medium text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-300"
-                disabled={checkoutLoading !== ''}
+                disabled={checkoutLoading !== '' || !monthlyLiveAvailable}
                 onClick={() => handleUpgrade('monthly')}
               >
-                {checkoutLoading === 'monthly' ? 'Redirecting...' : 'Upgrade monthly'}
+                {!monthlyLiveAvailable
+                  ? 'Monthly unavailable'
+                  : checkoutLoading === 'monthly'
+                    ? 'Redirecting...'
+                    : 'Upgrade monthly'}
               </button>
             </article>
 
@@ -156,19 +163,25 @@ export default function OverlayUpgradePage() {
               </ul>
               <button
                 className="mt-8 w-full rounded-full bg-slate-950 px-5 py-3 font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
-                disabled={checkoutLoading !== ''}
+                disabled={checkoutLoading !== '' || !yearlyLiveAvailable}
                 onClick={() => handleUpgrade('yearly')}
               >
-                {checkoutLoading === 'yearly' ? 'Redirecting...' : 'Upgrade annually'}
+                {!yearlyLiveAvailable
+                  ? 'Annual unavailable'
+                  : checkoutLoading === 'yearly'
+                    ? 'Redirecting...'
+                    : 'Upgrade annually'}
               </button>
             </article>
           </div>
         )}
 
         <div className="mt-8 rounded-3xl border border-slate-800 bg-slate-900/60 px-6 py-5 text-sm text-slate-300">
-          {site?.demoMode
-            ? 'Demo billing mode is active, so the checkout button simulates a successful upgrade without contacting Stripe.'
-            : 'Live billing mode is active, so checkout redirects to Stripe and the overlay state is updated by the Entry Nets webhook.'}
+          {!liveBillingAvailable
+            ? 'Demo billing mode is active because no live Stripe plan configuration is available for this overlay billing host.'
+            : !monthlyLiveAvailable || !yearlyLiveAvailable
+              ? 'Live billing mode is active, but one plan is currently unavailable because its Stripe price configuration is missing.'
+              : 'Live billing mode is active, so checkout redirects to Stripe and the overlay state is updated by the Entry Nets webhook.'}
         </div>
       </div>
     </div>

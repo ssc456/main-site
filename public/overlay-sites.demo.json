@@ -1,13 +1,1 @@
-[
-  {
-    "siteKey": "overlay-demo-site",
-    "displayName": "Overlay Demo Site",
-    "ownerEmail": "demo@entrynets.com",
-    "paymentTier": "FREE",
-    "allowedDomains": ["localhost", "127.0.0.1"],
-    "monthlyPriceLabel": "25",
-    "yearlyPriceLabel": "250",
-    "createdAt": "2026-06-22T00:00:00.000Z",
-    "updatedAt": "2026-06-22T00:00:00.000Z"
-  }
-]
+[]

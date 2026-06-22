@@ -916,7 +916,7 @@ export default function SitesList() {
 
       {showExternalForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl p-6 max-w-2xl w-full">
+          <div className="mx-4 max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6 shadow-xl">
             <h3 className="text-lg font-bold text-gray-900 mb-4">{editingExternalSiteKey ? 'Edit External Overlay Site' : 'Register External Overlay Site'}</h3>
 
             <form onSubmit={createExternalSite}>
