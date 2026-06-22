@@ -9,7 +9,7 @@ import {
   saveOverlaySite,
   setCorsHeaders,
   setOverlayPaymentTier
-} from './utils/overlaySites.js';
+} from '../lib/overlaySites.js';
 import { Redis } from '@upstash/redis';
 
 const redis = (() => {

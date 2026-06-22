@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 import { Redis } from '@upstash/redis';
 import { buffer } from 'micro';
-import { findOverlaySiteBySubscriptionId, saveOverlaySite, setOverlayPaymentTier } from './utils/overlaySites.js';
+import { findOverlaySiteBySubscriptionId, saveOverlaySite, setOverlayPaymentTier } from '../lib/overlaySites.js';
 
 // Initialize Redis client
 const redis = new Redis({

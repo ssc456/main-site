@@ -1,5 +1,5 @@
 import { Redis } from '@upstash/redis';
-import { setOverlayPaymentTier } from './utils/overlaySites.js';
+import { setOverlayPaymentTier } from '../lib/overlaySites.js';
 
 // Initialize Redis client
 const redis = new Redis({
