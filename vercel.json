@@ -1,5 +1,8 @@
 {
   "rewrites": [
+    { "source": "/api/overlay-site-status", "destination": "/api/external-sites?action=status" },
+    { "source": "/api/overlay-create-checkout", "destination": "/api/external-sites?action=checkout" },
+    { "source": "/api/overlay-stripe-webhook", "destination": "/api/stripe-webhook" },
     { "source": "/api/:path*", "destination": "/api/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
