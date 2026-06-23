@@ -14,6 +14,11 @@ export default function OverlayUpgradePage() {
   const liveBillingAvailable = site?.liveBillingAvailable !== false;
   const monthlyLiveAvailable = site?.monthlyLiveAvailable !== false;
   const yearlyLiveAvailable = site?.yearlyLiveAvailable !== false;
+  const billingStatusMessage = !liveBillingAvailable
+    ? 'Demo billing mode is active because no live Stripe plan configuration is available for this overlay billing host.'
+    : !monthlyLiveAvailable || !yearlyLiveAvailable
+      ? 'One plan is currently unavailable because its Stripe price configuration is missing.'
+      : '';
 
   useEffect(() => {
     let isMounted = true;
@@ -86,7 +91,7 @@ export default function OverlayUpgradePage() {
             <p className="text-sm uppercase tracking-[0.35em] text-cyan-300">Entry Nets Billing</p>
             <h1 className="mt-3 text-4xl font-semibold text-white">Upgrade {site?.displayName || siteKey}</h1>
             <p className="mt-3 max-w-2xl text-base text-slate-300">
-              Remove the free-site banner from this externally hosted site while keeping billing and entitlement control inside Entry Nets.
+              Remove the free-site banner from your website.
             </p>
           </div>
           {returnUrl && (
@@ -136,9 +141,9 @@ export default function OverlayUpgradePage() {
               <p className="text-sm uppercase tracking-[0.3em] text-cyan-300">Monthly</p>
               <h2 className="mt-4 text-3xl font-semibold text-white">GBP {site?.monthlyPriceLabel}/month</h2>
               <ul className="mt-6 space-y-3 text-slate-300">
-                <li>Remove the Entry Nets free-site overlay</li>
+                <li>Remove the free-site banner</li>
                 <li>Keep the site design and code fully under your control</li>
-                <li>Stripe billing remains centralized in Entry Nets</li>
+                <li>Monthly billing cycle</li>
               </ul>
               <button
                 className="mt-8 w-full rounded-full bg-cyan-400 px-5 py-3 font-medium text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:bg-slate-700 disabled:text-slate-300"
@@ -157,9 +162,9 @@ export default function OverlayUpgradePage() {
               <p className="text-sm uppercase tracking-[0.3em] text-cyan-700">Annual</p>
               <h2 className="mt-4 text-3xl font-semibold">GBP {site?.yearlyPriceLabel}/year</h2>
               <ul className="mt-6 space-y-3 text-slate-700">
-                <li>Same overlay removal and centralized billing</li>
+                <li>Remove the free-site banner</li>
                 <li>Better fit for stable client websites</li>
-                <li>Simple entitlement state: FREE or PREMIUM</li>
+                <li>Annual billing cycle</li>
               </ul>
               <button
                 className="mt-8 w-full rounded-full bg-slate-950 px-5 py-3 font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
@@ -176,13 +181,11 @@ export default function OverlayUpgradePage() {
           </div>
         )}
 
-        <div className="mt-8 rounded-3xl border border-slate-800 bg-slate-900/60 px-6 py-5 text-sm text-slate-300">
-          {!liveBillingAvailable
-            ? 'Demo billing mode is active because no live Stripe plan configuration is available for this overlay billing host.'
-            : !monthlyLiveAvailable || !yearlyLiveAvailable
-              ? 'Live billing mode is active, but one plan is currently unavailable because its Stripe price configuration is missing.'
-              : 'Live billing mode is active, so checkout redirects to Stripe and the overlay state is updated by the Entry Nets webhook.'}
-        </div>
+        {billingStatusMessage && (
+          <div className="mt-8 rounded-3xl border border-slate-800 bg-slate-900/60 px-6 py-5 text-sm text-slate-300">
+            {billingStatusMessage}
+          </div>
+        )}
       </div>
     </div>
   );
