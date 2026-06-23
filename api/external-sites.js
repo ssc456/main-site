@@ -178,7 +178,6 @@ export default async function handler(req, res) {
         allow_promotion_codes: true,
         success_url: `${baseUrl}/upgrade-success?siteKey=${encodeURIComponent(site.siteKey)}${returnUrlQuery}&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${baseUrl}/upgrade/${encodeURIComponent(site.siteKey)}?canceled=1${safeReturnUrl ? `&returnUrl=${encodeURIComponent(safeReturnUrl)}` : ''}`,
-        customer_email: site.ownerEmail || undefined,
         metadata: {
           billingKind: 'overlay-site',
           siteKey: site.siteKey,

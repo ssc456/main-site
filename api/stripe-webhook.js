@@ -45,10 +45,16 @@ export default async function handler(req, res) {
         const billingKind = session.metadata?.billingKind;
 
         if (billingKind === 'overlay-site' && session.metadata?.siteKey) {
-          await setOverlayPaymentTier(session.metadata.siteKey, 'PREMIUM', {
+          const overlayUpdates = {
             stripeCustomerId: session.customer || null,
             subscriptionId: session.subscription || null,
-          });
+          };
+
+          if (session.customer_details?.email) {
+            overlayUpdates.ownerEmail = session.customer_details.email;
+          }
+
+          await setOverlayPaymentTier(session.metadata.siteKey, 'PREMIUM', overlayUpdates);
           console.log(`[Stripe Webhook] External site ${session.metadata.siteKey} upgraded to PREMIUM`);
           break;
         }
